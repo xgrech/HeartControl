@@ -18,7 +18,7 @@ public class Song {
         id=songID;
         title=songTitle;
         artist=songArtist;
-        eStatus = emotionStatus;
+        emotionStatus = eStatus;
     }
 
 

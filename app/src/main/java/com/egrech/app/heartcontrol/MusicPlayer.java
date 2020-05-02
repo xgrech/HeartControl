@@ -58,7 +58,7 @@ public class MusicPlayer extends AppCompatActivity implements MediaPlayerControl
 
     TextView currentSongTitle;
     TextView currentSongArtist;
-    TextView pickSongInfo;
+    TextView pickSongInfo; // simple text to pick a song in music player
 
     View lastSongView;
 
@@ -94,6 +94,8 @@ public class MusicPlayer extends AppCompatActivity implements MediaPlayerControl
             public void onClick(View v) {
                 stopService(new Intent(getApplicationContext(), MusicService.class));
                 musicSrv = null;
+                System.exit(0);
+
                 Intent intent = new Intent(getApplicationContext(), Menu.class);
                 startActivity(intent);
             }
@@ -121,6 +123,7 @@ public class MusicPlayer extends AppCompatActivity implements MediaPlayerControl
 
     @Override
     public void onBackPressed() {
+        System.exit(0);
         Intent intent = new Intent(getApplicationContext(), Menu.class);
         startActivity(intent);
     }

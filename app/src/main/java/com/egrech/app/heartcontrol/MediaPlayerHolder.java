@@ -4,6 +4,7 @@ package com.egrech.app.heartcontrol;
 import android.content.Context;
 import android.content.res.AssetFileDescriptor;
 import android.media.MediaPlayer;
+import android.net.Uri;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -19,10 +20,12 @@ public final class MediaPlayerHolder implements PlayerAdapter {
 
     private final Context mContext;
     private MediaPlayer mMediaPlayer;
-    private int mResourceId;
+    private Uri mResourceUri;
     private PlaybackInfoListener mPlaybackInfoListener;
     private ScheduledExecutorService mExecutor;
     private Runnable mSeekbarPositionUpdateTask;
+
+    private Song currentSong;
 
     public MediaPlayerHolder(Context context) {
         mContext = context.getApplicationContext();
@@ -59,16 +62,14 @@ public final class MediaPlayerHolder implements PlayerAdapter {
 
     // Implements PlaybackControl.
     @Override
-    public void loadMedia(int resourceId) {
-        mResourceId = resourceId;
-
+    public void loadMedia(Uri resourceUri, Song song) {
+        mResourceUri = resourceUri;
+        currentSong = song;
         initializeMediaPlayer();
 
-        AssetFileDescriptor assetFileDescriptor =
-                mContext.getResources().openRawResourceFd(mResourceId);
         try {
             logToUI("load() {1. setDataSource}");
-            mMediaPlayer.setDataSource(assetFileDescriptor);
+            mMediaPlayer.setDataSource(mContext, resourceUri);
         } catch (Exception e) {
             logToUI(e.toString());
         }
@@ -105,7 +106,7 @@ public final class MediaPlayerHolder implements PlayerAdapter {
     public void play() {
         if (mMediaPlayer != null && !mMediaPlayer.isPlaying()) {
             logToUI(String.format("playbackStart() %s",
-                    mContext.getResources().getResourceEntryName(mResourceId)));
+                    currentSong.getTitle()));
             mMediaPlayer.start();
             if (mPlaybackInfoListener != null) {
                 mPlaybackInfoListener.onStateChanged(PlaybackInfoListener.State.PLAYING);
@@ -119,7 +120,7 @@ public final class MediaPlayerHolder implements PlayerAdapter {
         if (mMediaPlayer != null) {
             logToUI("playbackReset()");
             mMediaPlayer.reset();
-            loadMedia(mResourceId);
+            loadMedia(mResourceUri, currentSong);
             if (mPlaybackInfoListener != null) {
                 mPlaybackInfoListener.onStateChanged(PlaybackInfoListener.State.RESET);
             }
