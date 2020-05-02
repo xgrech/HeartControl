@@ -60,7 +60,7 @@ public class Menu extends AppCompatActivity {
 
     ImageView heartRateBackground;
     TextView heartRateinfo;
-    Button musicPlayer, options, logout;
+    Button musicPlayer, options, logout, carPlayer;
 
     private FirebaseAuth mAuth;
     private FirebaseDatabase mFirebaseDatabaseInstance;
@@ -98,6 +98,7 @@ public class Menu extends AppCompatActivity {
         logout = (Button) findViewById(R.id.menu_logout);
         heartRateBackground = (ImageView) findViewById(R.id.menu_heart_rate_background);
         heartRateinfo = (TextView) findViewById(R.id.menu_heart_rate);
+        carPlayer = (Button) findViewById(R.id.menu_car);
 
         checkNewUser();
 
@@ -134,6 +135,15 @@ public class Menu extends AppCompatActivity {
             public void onClick(View v) {
                 heartRateBackground.startAnimation(animFadeinFast);
                 connectPolarDevice();
+            }
+        });
+
+
+        carPlayer.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(getApplicationContext(), CarPlayer.class);
+                startActivity(intent);
             }
         });
     }
