@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "959681962983",
+    "firebase_url": "https://music-heartcontrol.firebaseio.com",
+    "project_id": "music-heartcontrol",
+    "storage_bucket": "music-heartcontrol.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:959681962983:android:a3f5aac2bcb0db9ca45342",
+        "android_client_info": {
+          "package_name": "com.egrech.app.heartcontrol"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "959681962983-elt6v5qildrtrehkad5mv9ughu68jcc8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBR4O44g5BLjVL5JdIL9tnD0XPrPEexZj4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "959681962983-elt6v5qildrtrehkad5mv9ughu68jcc8.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
