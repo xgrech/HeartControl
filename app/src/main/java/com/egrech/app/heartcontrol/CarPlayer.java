@@ -1,6 +1,7 @@
 package com.egrech.app.heartcontrol;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import io.reactivex.disposables.Disposable;
@@ -15,6 +16,7 @@ import polar.com.sdk.api.model.PolarHrBroadcastData;
 import polar.com.sdk.api.model.PolarHrData;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.content.ContentResolver;
 import android.content.ContentUris;
@@ -32,17 +34,19 @@ import android.view.animation.AnimationUtils;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import org.apache.commons.lang3.ObjectUtils;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.reflect.Array;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -63,26 +67,24 @@ public class CarPlayer extends AppCompatActivity {
     Boolean isBluetoothOn = false;
     Boolean isGPSOn = false;
 
+    private ImageView playBackButton;
+    private ImageView playNextButton;
+
+    private ProgressBar progressBar;
 
     int averageHeartRat = 90; // todo doriesit analyzator priemerneho tepu
-    int heartRate = averageHeartRat;
 
-    Button auto_primary;
-    Button sleep_secondary;
-    Button sport_secondary;
-    Button player_secondary;
+    int heartRate;
+    int senzorData = 0;
 
-    Button playNext_button;
-    Button PlayBackButton;
+    ImageView auto_primary;
 
     ImageView heartRateBackground;
     TextView heartRateinfo;
 
-    int lastSongPosition = 0;
-
     boolean mode_menu_open = false;
 
-    public static final String TAG = "MainActivity";
+    public static final String TAG = "CarPlayerActivity";
     public static final int MEDIA_RES_ID = R.raw.jazz_in_paris;
 
     private TextView mTextDebug;
@@ -92,11 +94,34 @@ public class CarPlayer extends AppCompatActivity {
     private boolean mUserIsSeeking = false;
 
 
+    private TextView car_player_next_song_title;
+    private TextView car_player_song_title;
+    private TextView car_player_song_artist;
+    private TextView car_player_actual_time;
+    private TextView car_player_song_duration;
+
+    private Button mPauseButton;
+    private Button mResetButton;
+    private Button car_play_create_emotion_list;
+
+
+    private ConstraintLayout car_player_next_layout;
+    private ConstraintLayout car_player_back_layout;
+    private ConstraintLayout car_player_song_layout;
+
     private ArrayList<Song> songList;
 
-    Song currentSong;
-    int songPosition = 0;
+    ImageView car_player_emotion_indicator;
 
+    int songPosition = -1;
+    int nextSong = 0;
+
+    ArrayList<Integer> playedSongs;
+
+    boolean playEnabled = false;
+    boolean playWasToutched = false;
+
+    Animation animFadein;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -122,21 +147,14 @@ public class CarPlayer extends AppCompatActivity {
         heartRateBackground = (ImageView) findViewById(R.id.car_player_heart_rate_background);
         heartRateinfo = (TextView) findViewById(R.id.car_palyer_heart_rate);
 
+
         // inicializuj pripojenie OH1 senzoru
         connectPolarDevice();
 
 
         songList = new ArrayList<Song>();
 
-        // ziskaj list piesni v zariadeni a utried ich abecedne
         getSongList();
-        Collections.sort(songList, new Comparator<Song>() {
-            public int compare(Song a, Song b) {
-                return a.getTitle().compareTo(b.getTitle());
-            }
-        });
-        // ziskaj list piesni v zariadeni a utried ich abecedne FINN
-
 
         initializeUI();
         initializeSeekbar();
@@ -201,16 +219,18 @@ public class CarPlayer extends AppCompatActivity {
             }
             while (musicCursor.moveToNext());
         }
+
+        Collections.sort(songList, new Comparator<Song>() {
+            public int compare(Song a, Song b) {
+                return a.getTitle().compareTo(b.getTitle());
+            }
+        });
     }
 
 
     @Override
     protected void onStart() {
         super.onStart();
-        mPlayerAdapter.loadMedia(ContentUris.withAppendedId(
-                android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                songList.get(0).getID()), songList.get(0));
-        Log.d(TAG, "onStart: create MediaPlayer");
     }
 
 
@@ -226,105 +246,151 @@ public class CarPlayer extends AppCompatActivity {
     }
 
     void playNextSong() {
-        songPosition = searchSongByEmotion();
-        mPlayerAdapter.loadMedia(ContentUris.withAppendedId(
-                android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                songList.get(songPosition).getID()), songList.get(songPosition));
+        if (playEnabled) {
+            car_player_song_title.setText(songList.get(nextSong).getTitle());
+            car_player_song_artist.setText(songList.get(nextSong).getArtist());
 
-        mPlayerAdapter.reset();
-        mPlayerAdapter.play();
+            mPlayerAdapter.loadMedia(ContentUris.withAppendedId(
+                    android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                    songList.get(nextSong).getID()), songList.get(nextSong));
+
+            if (mPlayerAdapter.isPlaying()) {
+                mPlayerAdapter.reset();
+                mPlayerAdapter.play();
+            } else mPlayerAdapter.reset();
+
+
+            songPosition = nextSong;
+            playedSongs.add(songPosition);
+
+            searchSongByEmotion();
+        }
     }
 
     void playBackSong() {
-        songPosition = lastSongPosition;
-        mPlayerAdapter.loadMedia(ContentUris.withAppendedId(
-                android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                songList.get(songPosition).getID()), songList.get(songPosition));
-        mPlayerAdapter.reset();
-        mPlayerAdapter.play();
+        if (playEnabled) {
+            if (!(playedSongs.size() == 1)) {
+                playedSongs.remove(playedSongs.size() - 1);
+                songPosition = playedSongs.get(playedSongs.size() - 1);
+
+                car_player_song_title.setText(songList.get(songPosition).getTitle());
+                car_player_song_artist.setText(songList.get(songPosition).getArtist());
+
+            } else
+                Toast.makeText(getApplicationContext(), "Nothing to play before this", Toast.LENGTH_SHORT);
+
+            mPlayerAdapter.loadMedia(ContentUris.withAppendedId(
+                    android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                    songList.get(songPosition).getID()), songList.get(songPosition));
+            if (mPlayerAdapter.isPlaying()) {
+                mPlayerAdapter.reset();
+                mPlayerAdapter.play();
+            } else mPlayerAdapter.reset();
+        }
     }
 
 
     private void initializeUI() {
+        animFadein = AnimationUtils.loadAnimation(getApplicationContext(),
+                R.anim.fade_in);
 
-        Animation animSlideIn = AnimationUtils.loadAnimation(getApplicationContext(),
-                R.anim.fui_slide_in_right);
 
-        auto_primary = (Button) findViewById(R.id.mode_car);
-        sleep_secondary = (Button) findViewById(R.id.mode_sleep);
-        sport_secondary = (Button) findViewById(R.id.mode_sport);
-        player_secondary = (Button) findViewById(R.id.mode_normal);
+        progressBar = (ProgressBar) findViewById(R.id.car_progress_bar);
 
-        sleep_secondary.setAnimation(animSlideIn);
-        sport_secondary.setAnimation(animSlideIn);
-        player_secondary.setAnimation(animSlideIn);
+        playedSongs = new ArrayList<Integer>();
+
+        car_player_next_song_title = (TextView) findViewById(R.id.car_player_next_song_title);
+        car_player_emotion_indicator = (ImageView) findViewById(R.id.car_player_emotion_indicator);
+        car_player_song_title = (TextView) findViewById(R.id.car_player_song_title);
+        car_player_song_artist = (TextView) findViewById(R.id.car_player_song_artist);
+
+
+        car_player_actual_time = (TextView) findViewById(R.id.car_player_actual_time);
+        car_player_song_duration = (TextView) findViewById(R.id.car_player_song_duration);
+
+
+        car_player_next_layout = (ConstraintLayout) findViewById(R.id.car_player_next_layout);
+        car_player_back_layout = (ConstraintLayout) findViewById(R.id.car_player_back_layout);
+        car_player_song_layout = (ConstraintLayout) findViewById(R.id.car_player_song_layout);
+
+
+        auto_primary = (ImageView) findViewById(R.id.car_player_mode_button);
+
+        playBackButton = (ImageView) findViewById(R.id.car_back);
+        playNextButton = (ImageView) findViewById(R.id.car_next);
+
+
+        ImageView mPlayButton = (ImageView) findViewById(R.id.car_player_play_button);
+        mPauseButton = (Button) findViewById(R.id.car_player_button2);
+        mResetButton = (Button) findViewById(R.id.car_player_button3);
+
+        car_play_create_emotion_list = (Button) findViewById(R.id.car_play_create_emotion_list);
+        car_play_create_emotion_list.setVisibility(View.GONE);
+
+        mSeekbarAudio = (SeekBar) findViewById(R.id.car_player_seek_bar);
+//        mScrollContainer = (ScrollView) findViewById(R.id.car_player_scroll_view);
+//        mTextDebug = (TextView) findViewById(R.id.car_playet_text);
+
 
         auto_primary.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
 
-                 if(mode_menu_open) {
-                     mode_menu_open = false;
-                     sleep_secondary.setVisibility(View.GONE);
-                     sport_secondary.setVisibility(View.GONE);
-                     player_secondary.setVisibility(View.GONE);
-                 } else {
-                     mode_menu_open = true;
-                     sleep_secondary.setVisibility(View.VISIBLE);
-                     sport_secondary.setVisibility(View.VISIBLE);
-                     player_secondary.setVisibility(View.VISIBLE);
-                 }
+                if (mode_menu_open) {
+                    mode_menu_open = false;
+                } else {
+                    mode_menu_open = true;
+                }
             }
         });
 
-        sleep_secondary.setOnClickListener(new View.OnClickListener() {
+        playNextButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent(getApplicationContext(), SleepPlayer.class);
-                startActivity(intent);
+                if (playEnabled) {
+                    playNextSong();
+                    playNextButton.setImageResource(R.drawable.forward_button_clicked);
+
+                    final Handler handler = new Handler();
+                    handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            playNextButton.setImageResource(R.drawable.forward_button);
+                        }
+                    }, 200);
+                }
             }
         });
-
-        sport_secondary.setOnClickListener(new View.OnClickListener() {
+        playBackButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent(getApplicationContext(), SportPlayer.class);
-                startActivity(intent);
+                if (playEnabled) {
+                    playBackSong();
+                    playBackButton.setImageResource(R.drawable.back_button_clicked);
+
+                    final Handler handler = new Handler();
+                    handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            playBackButton.setImageResource(R.drawable.back_button);
+                        }
+                    }, 200);
+                }
             }
         });
 
-        player_secondary.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(getApplicationContext(), MusicPlayer.class);
-                startActivity(intent);
-            }
-        });
-
-
-        Button playNext_button = (Button) findViewById(R.id.car_next);
-        Button PlayBackButton = (Button) findViewById(R.id.car_back);
-
-        playNext_button.setOnClickListener(new View.OnClickListener() {
+        car_player_next_layout.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 playNextSong();
             }
         });
-        PlayBackButton.setOnClickListener(new View.OnClickListener() {
+        car_player_back_layout.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 playBackSong();
             }
         });
-
-
-        mTextDebug = (TextView) findViewById(R.id.car_playet_text);
-        Button mPlayButton = (Button) findViewById(R.id.car_player_button1);
-        Button mPauseButton = (Button) findViewById(R.id.car_player_button2);
-        Button mResetButton = (Button) findViewById(R.id.car_player_button3);
-        mSeekbarAudio = (SeekBar) findViewById(R.id.car_player_seek_bar);
-        mScrollContainer = (ScrollView) findViewById(R.id.car_player_scroll_view);
 
         mPauseButton.setOnClickListener(
                 new View.OnClickListener() {
@@ -337,7 +403,15 @@ public class CarPlayer extends AppCompatActivity {
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
-                        mPlayerAdapter.play();
+                        if (playEnabled) {
+                            if (mPlayerAdapter.isPlaying()) {
+                                mPlayerAdapter.pause();
+                                mPlayButton.setImageResource(R.drawable.play_stop_button);
+                            } else {
+                                mPlayerAdapter.play();
+                                mPlayButton.setImageResource(R.drawable.play_stop_button_playing);
+                            }
+                        }
                     }
                 });
         mResetButton.setOnClickListener(
@@ -371,6 +445,7 @@ public class CarPlayer extends AppCompatActivity {
                     public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                         if (fromUser) {
                             userSelectedPosition = progress;
+                            car_player_actual_time.setText(String.valueOf(progress));
                         }
                     }
 
@@ -412,26 +487,23 @@ public class CarPlayer extends AppCompatActivity {
 
         @Override
         public void onLogUpdated(String message) {
-            if (mTextDebug != null) {
-                mTextDebug.append(message);
-                mTextDebug.append("\n");
-                // Moves the scrollContainer focus to the end.
-                mScrollContainer.post(
-                        new Runnable() {
-                            @Override
-                            public void run() {
-                                mScrollContainer.fullScroll(ScrollView.FOCUS_DOWN);
-                            }
-                        });
-            }
+//            if (mTextDebug != null) {
+//                mTextDebug.append(message);
+//                mTextDebug.append("\n");
+//                // Moves the scrollContainer focus to the end.
+//                mScrollContainer.post(
+//                        new Runnable() {
+//                            @Override
+//                            public void run() {
+//                                mScrollContainer.fullScroll(ScrollView.FOCUS_DOWN);
+//                            }
+//                        });
+//            }
         }
     }
 
-
-    int searchSongByEmotion() {
-        lastSongPosition = songPosition;
+    private void getNextSongSuggestion() {
         int newSongPosition = songPosition;
-        boolean noEqual = false;
 
         if (newSongPosition + 1 != songList.size()) {
             newSongPosition++;
@@ -439,16 +511,76 @@ public class CarPlayer extends AppCompatActivity {
 
         int temp = 0;
 
-//            Log.e("SearchingSong", "Telesny tep je " + String.valueOf(heartRate));
+        if (heartRate < averageHeartRat - 5) {
+            while (!songList.get(newSongPosition).getEmotionStatus().equals("R")) {
+                if (temp == songList.size()) {
+                    nextSong = songPosition;
+                }
+                if (newSongPosition + 1 != songList.size()) {
+                    newSongPosition++;
+                    temp++;
+                } else newSongPosition = 0;
+            }
+        } else {
+            if (heartRate > averageHeartRat + 5) {
+                while (!songList.get(newSongPosition).getEmotionStatus().equals("D")) {
+                    if (temp == songList.size()) {
+                        nextSong = songPosition;
+                    }
 
+                    if (newSongPosition + 1 != songList.size()) {
+                        newSongPosition++;
+                        temp++;
+                    } else newSongPosition = 0;
+                }
+            } else {
+                while (!songList.get(newSongPosition).getEmotionStatus().equals("N")) {
+                    if (temp == songList.size()) {
+                        nextSong = songPosition;
+                    }
+                    if (newSongPosition + 1 != songList.size()) {
+                        newSongPosition++;
+                        temp++;
+                    } else newSongPosition = 0;
+                }
+            }
+        }
+        nextSong = newSongPosition;
+    }
+
+
+    @SuppressLint("SetTextI18n")
+    int searchSongByEmotion() {
+        int newSongPosition = songPosition;
+        boolean noEqual = false;
+        Log.e("DEBUGG", String.valueOf(songPosition));
+        if (newSongPosition + 1 != songList.size()) {
+            newSongPosition++;
+        } else newSongPosition = 0;
+
+        int temp = 0;
+//            Log.e("SearchingSong", "Telesny tep je " + String.valueOf(heartRate));
         if (heartRate < averageHeartRat - 5) {
             Log.e("SearchingSong", "Cheme zvacsovat ");
 
             while (!songList.get(newSongPosition).getEmotionStatus().equals("R")) {
 //                    Log.e("SearchingSong", "song number " + newSongPosition + " with emotion status: " + songList.get(newSongPosition).getEmotionStatus() + " not fit into R //" + heartRate);
-
                 if (temp == songList.size()) {
-                    songPosition += 1;
+                    playEnabled = false;
+
+                    progressBar.setVisibility(View.GONE);
+                    mPauseButton.setVisibility(View.GONE);
+                    mResetButton.setVisibility(View.GONE);
+                    car_play_create_emotion_list.setVisibility(View.VISIBLE);
+
+                    createEmotionList();
+
+
+                    car_player_song_layout.setBackgroundResource(R.drawable.blue_background_warning);
+                    car_player_back_layout.setBackgroundResource(R.drawable.blue_background_warning);
+                    car_player_next_layout.setBackgroundResource(R.drawable.blue_background_warning);
+
+                    car_player_song_title.setText("No Songs in Rising Emotion List"); //todo doriesit presmerovanie na emocny zoznam
                     noEqual = true;
                     break;
                 }
@@ -466,9 +598,22 @@ public class CarPlayer extends AppCompatActivity {
 
                 while (!songList.get(newSongPosition).getEmotionStatus().equals("D")) {
 //                        Log.e("SearchingSong", "song " + songList.get(newSongPosition).getTitle() + " with emotion status: " + songList.get(newSongPosition).getEmotionStatus() + " not fit into D //" + heartRate);
-
                     if (temp == songList.size()) {
-                        songPosition += 1;
+                        playEnabled = false;
+
+                        progressBar.setVisibility(View.GONE);
+                        mPauseButton.setVisibility(View.GONE);
+                        mResetButton.setVisibility(View.GONE);
+                        car_play_create_emotion_list.setVisibility(View.VISIBLE);
+
+                        createEmotionList();
+
+
+                        car_player_song_layout.setBackgroundResource(R.drawable.blue_background_warning);
+                        car_player_back_layout.setBackgroundResource(R.drawable.blue_background_warning);
+                        car_player_next_layout.setBackgroundResource(R.drawable.blue_background_warning);
+
+                        car_player_song_title.setText("No Songs in Decrease Emotion List"); //todo doriesit presmerovanie na emocny zoznam
                         noEqual = true;
                         break;
                     }
@@ -476,25 +621,33 @@ public class CarPlayer extends AppCompatActivity {
                     if (newSongPosition + 1 != songList.size()) {
                         newSongPosition++;
                         temp++;
-
                     } else newSongPosition = 0;
                 }
             } else {
                 while (!songList.get(newSongPosition).getEmotionStatus().equals("N")) {
                     Log.e("SearchingSong", "Ostavame neutral ");
-
 //                        Log.e("SearchingSong", "song number " + newSongPosition + " with emotion status: " + songList.get(newSongPosition).getEmotionStatus() + " not fit into N //" + heartRate);
-
                     if (temp == songList.size()) {
-                        songPosition += 1;
+                        playEnabled = false;
+
+                        progressBar.setVisibility(View.GONE);
+                        mPauseButton.setVisibility(View.GONE);
+                        mResetButton.setVisibility(View.GONE);
+                        car_play_create_emotion_list.setVisibility(View.VISIBLE);
+
+                        createEmotionList();
+
+                        car_player_song_layout.setBackgroundResource(R.drawable.blue_background_warning);
+                        car_player_back_layout.setBackgroundResource(R.drawable.blue_background_warning);
+                        car_player_next_layout.setBackgroundResource(R.drawable.blue_background_warning);
+
+                        car_player_song_title.setText("No Songs in Neutral Emotion List"); //todo doriesit presmerovanie na emocny zoznam
                         noEqual = true;
                         break;
                     }
-
                     if (newSongPosition + 1 != songList.size()) {
                         newSongPosition++;
                         temp++;
-
                     } else newSongPosition = 0;
                 }
             }
@@ -502,18 +655,43 @@ public class CarPlayer extends AppCompatActivity {
 
         if (noEqual) {
             Log.e("SearchingSong", "Nenasli sme ziadnu zhodu emocii, vyberame dalsiu piesen v poradi");
-            return songPosition += 1;
-
+            playEnabled = false;
+            return -1;
         } else {
             Log.e("SearchingSong", "Vyberame piesen: " + songList.get(newSongPosition).getTitle() + " - " + songList.get(newSongPosition).getEmotionStatus());
-            return newSongPosition;
+            nextSong = newSongPosition;
 
+            String songEmotionStatus = songList.get(nextSong).getEmotionStatus();
+            car_player_next_song_title.setText(songList.get(nextSong).getTitle());
+
+            if (songEmotionStatus.equals("R")) {
+                car_player_emotion_indicator.setImageResource(R.drawable.note_green);
+                car_player_next_song_title.setTextColor(getResources().getColor(R.color.green));
+            } else if (songEmotionStatus.equals("D")) {
+                car_player_emotion_indicator.setImageResource(R.drawable.note_red);
+                car_player_next_song_title.setTextColor(getResources().getColor(R.color.red));
+            } else {
+                car_player_emotion_indicator.setImageResource(R.drawable.note_yellow);
+                car_player_next_song_title.setTextColor(getResources().getColor(R.color.gold));
+            }
+
+            return 1;
         }
     }
 
+
+    private void createEmotionList() {
+        car_play_create_emotion_list.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mPlayerAdapter.release();
+                Intent intent = new Intent(getApplicationContext(), MusicPlayer.class);
+                startActivity(intent);
+            }
+        });
+    }
+
     private String getEmotionStatusFromFile(int songID) {
-
-
         String emotion = "";
         try {
             InputStream inputStream = getApplicationContext().openFileInput("SongEmotions");
@@ -538,11 +716,11 @@ public class CarPlayer extends AppCompatActivity {
         return emotion;
     }
 
-
     // tento blok kodu kazdych 7 sekund spravi priemer zo ziskanych hodnot zo senzoru a stanovi priemernu hodnotu tepu
     ArrayList<Integer> hrValues = new ArrayList<Integer>();
     public static Handler myHandler = new Handler();
     private static final int TIME_TO_WAIT = 7000;
+
     Runnable myRunnable = new Runnable() {
         @Override
         public void run() {
@@ -550,7 +728,39 @@ public class CarPlayer extends AppCompatActivity {
             for (int i = 0; i < hrValues.size(); i++) {
                 hrCount += hrValues.get(i);
             }
+
             heartRate = hrCount / hrValues.size();
+
+
+            heartRateinfo.startAnimation(animFadein);
+            heartRateinfo.setText(String.valueOf(heartRate));
+
+            Log.e("DEBUGGg", String.valueOf(songPosition));
+
+            if (searchSongByEmotion() != -1) {
+                if (!playEnabled) {
+
+                    mPlayerAdapter.loadMedia(ContentUris.withAppendedId(
+                            android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                            songList.get(nextSong).getID()), songList.get(nextSong));
+
+                    songPosition = nextSong;
+                    playedSongs.add(songPosition);
+
+                    progressBar.setVisibility(View.GONE);
+                    car_player_actual_time.setVisibility(View.VISIBLE);
+                    car_player_song_duration.setVisibility(View.VISIBLE);
+
+                    playEnabled = true;
+
+                    car_player_song_title.setText(songList.get(nextSong).getTitle());
+                    car_player_song_artist.setText(songList.get(nextSong).getArtist());
+
+                    searchSongByEmotion();
+                }
+            }
+
+
             //Log.e("HEARTRATE", "Actual avaregae measurment of Heart Rate is: "+heartRate);
             hrValues.clear();
             restartCountingHR();
@@ -558,7 +768,7 @@ public class CarPlayer extends AppCompatActivity {
     };
     // fin
 
-    public void startCountingHR() {
+    public void startCountingHR(int hrData) {
         myHandler.postDelayed(myRunnable, TIME_TO_WAIT);
     }
 
@@ -573,7 +783,6 @@ public class CarPlayer extends AppCompatActivity {
 
 
     void connectPolarDevice() {
-
         final Handler handler = new Handler();
         final boolean[] runnableFlag = {false};
 
@@ -659,14 +868,16 @@ public class CarPlayer extends AppCompatActivity {
                     @Override
                     public void accept(PolarHrBroadcastData polarBroadcastData) throws Exception {
 
-                        heartRateinfo.setText(String.valueOf(polarBroadcastData.hr));
-                        hrValues.add(polarBroadcastData.hr);
+                        car_player_song_title.setVisibility(View.VISIBLE);
+
+                        senzorData = polarBroadcastData.hr;
+                        hrValues.add(senzorData);
 
 
-                        if (!runnableFlag[0]) startCountingHR();
+                        if (!runnableFlag[0]) startCountingHR(polarBroadcastData.hr);
                         runnableFlag[0] = true; // when we started average counting, we can disable start of runnable counter
 
-//                        Log.d(TAG,"HR SenZOR OH1 BROADCAST " +
+//                        Log.d(TAG, "HR SenZOR OH1 BROADCAST " +
 //                                polarBroadcastData.polarDeviceInfo.deviceId + " HR: " +
 //                                polarBroadcastData.hr + " batt: " +
 //                                polarBroadcastData.batteryStatus);

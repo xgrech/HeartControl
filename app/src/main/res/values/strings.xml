@@ -68,6 +68,8 @@
     <!--    set up new user screen-->
     <string name="smoking_question">Do you smoke?</string>
     <string name="name_question">How should I call you?</string>
+    <string name="reset">Reset</string>
+    <string name="pause">Pause</string>
     <string-array name="gender_values">
         <item>Man</item>
         <item>Woman</item>

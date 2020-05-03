@@ -28,7 +28,6 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.ListView;
 import android.widget.ScrollView;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -204,12 +203,12 @@ public class SleepPlayer extends AppCompatActivity {
     }
 
     private void initializeUI() {
-        mTextDebug = (TextView) findViewById(R.id.car_playet_text);
-        Button mPlayButton = (Button) findViewById(R.id.car_player_button1);
+//        mTextDebug = (TextView) findViewById(R.id.car_playet_text);
+        Button mPlayButton = (Button) findViewById(R.id.car_player_play_button);
         Button mPauseButton = (Button) findViewById(R.id.car_player_button2);
         Button mResetButton = (Button) findViewById(R.id.car_player_button3);
         mSeekbarAudio = (SeekBar) findViewById(R.id.car_player_seek_bar);
-        mScrollContainer = (ScrollView) findViewById(R.id.car_player_scroll_view);
+//        mScrollContainer = (ScrollView) findViewById(R.id.car_player_scroll_view);
 
         mPauseButton.setOnClickListener(
                 new View.OnClickListener() {

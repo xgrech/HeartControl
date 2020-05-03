@@ -14,8 +14,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 
 import android.content.Context;
@@ -55,7 +53,7 @@ public class SongAdapter extends BaseAdapter {
                 (R.layout.song, parent, false);
         //get title and artist views
 
-        TextView songView = (TextView) songLay.findViewById(R.id.song_title);
+        TextView songView = (TextView) songLay.findViewById(R.id.car_player_song_title);
         TextView artistView = (TextView) songLay.findViewById(R.id.song_artist);
         ImageView noteView = (ImageView) songLay.findViewById(R.id.song_note_view);
         //get song using position
