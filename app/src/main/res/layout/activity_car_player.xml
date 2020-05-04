@@ -74,7 +74,7 @@
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/car_player_song_layout"
-        android:layout_width="445dp"
+        android:layout_width="0dp"
         android:layout_height="385dp"
         android:background="@drawable/blue_background"
         android:paddingBottom="15sp"
@@ -135,14 +135,13 @@
             android:id="@+id/car_player_song_title"
             android:layout_width="317dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="32dp"
+            android:layout_marginTop="56dp"
             android:text="Measuring your HeartRate"
             android:textAlignment="center"
             android:textColor="#000000"
             android:textSize="36sp"
             android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.555"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             tools:visibility="gone" />

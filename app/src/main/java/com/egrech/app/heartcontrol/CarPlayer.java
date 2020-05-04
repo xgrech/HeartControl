@@ -245,7 +245,7 @@ public class CarPlayer extends AppCompatActivity {
         }
     }
 
-    void playNextSong() {
+    void playNextSong(boolean lastFinished) {
         if (playEnabled) {
             car_player_song_title.setText(songList.get(nextSong).getTitle());
             car_player_song_artist.setText(songList.get(nextSong).getArtist());
@@ -254,7 +254,7 @@ public class CarPlayer extends AppCompatActivity {
                     android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
                     songList.get(nextSong).getID()), songList.get(nextSong));
 
-            if (mPlayerAdapter.isPlaying()) {
+            if (mPlayerAdapter.isPlaying() || lastFinished) {
                 mPlayerAdapter.reset();
                 mPlayerAdapter.play();
             } else mPlayerAdapter.reset();
@@ -348,7 +348,7 @@ public class CarPlayer extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 if (playEnabled) {
-                    playNextSong();
+                    playNextSong(false);
                     playNextButton.setImageResource(R.drawable.forward_button_clicked);
 
                     final Handler handler = new Handler();
@@ -382,7 +382,7 @@ public class CarPlayer extends AppCompatActivity {
         car_player_next_layout.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                playNextSong();
+                playNextSong(false);
             }
         });
         car_player_back_layout.setOnClickListener(new View.OnClickListener() {
@@ -481,7 +481,7 @@ public class CarPlayer extends AppCompatActivity {
 
         @Override
         public void onPlaybackCompleted() {
-            playNextSong();
+            playNextSong(true);
         }
 
 

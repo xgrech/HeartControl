@@ -1,6 +1,7 @@
 package com.egrech.app.heartcontrol;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import io.reactivex.disposables.Disposable;
@@ -15,6 +16,7 @@ import polar.com.sdk.api.model.PolarHrBroadcastData;
 import polar.com.sdk.api.model.PolarHrData;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.content.ContentResolver;
 import android.content.ContentUris;
@@ -23,15 +25,26 @@ import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.NumberPicker;
+import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -52,31 +65,65 @@ public class SportPlayer extends AppCompatActivity {
     Boolean isBluetoothOn = false;
     Boolean isGPSOn = false;
 
+    private ImageView playBackButton;
+    private ImageView playNextButton;
+    private ImageView sportLevelIndicator;
+
+    private ProgressBar progressBar;
+
+    int averageHeartRat = 90; // todo doriesit analyzator priemerneho tepu
+
     int heartRate;
+    int senzorData = 0;
 
-    ImageView heartRateBackground;
-    TextView heartRateinfo;
+    private ImageView auto_primary;
 
+    private ImageView heartRateBackground;
+    private TextView heartRateinfo;
 
-    public static final String TAG = "MainActivity";
-    public static final int MEDIA_RES_ID = R.raw.jazz_in_paris;
+    boolean mode_menu_open = false;
 
-    private TextView mTextDebug;
+    public static final String TAG = "SportPlayerActivity";
+
     private SeekBar mSeekbarAudio;
-    private ScrollView mScrollContainer;
     private PlayerAdapter mPlayerAdapter;
     private boolean mUserIsSeeking = false;
 
+    private TextView player_next_song_title;
+    private TextView player_song_title;
+    private TextView player_song_artist;
+    private TextView player_actual_time;
+    private TextView player_song_duration;
+
+    private Button mPauseButton;
+    private Button mResetButton;
+    private Button sportCreateEmotionList;
+
+
+    private ConstraintLayout player_next_layout;
+    private ConstraintLayout player_back_layout;
+    private ConstraintLayout player_song_layout;
 
     private ArrayList<Song> songList;
 
-    Song currentSong;
+    private ImageView player_emotion_indicator;
+
+    int songPosition = -1;
+    int nextSong = 0;
+
+    private ArrayList<Integer> playedSongs;
+
+    boolean playEnabled = false;
+    boolean playWasToutched = false; // todo
+
+    private Animation animFadein;
+    private NumberPicker hrPicker;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_car_player);
+        setContentView(R.layout.activity_sport_player);
 
         checkForPermission();
 
@@ -97,23 +144,14 @@ public class SportPlayer extends AppCompatActivity {
         heartRateBackground = (ImageView) findViewById(R.id.sport_player_heart_rate_background);
         heartRateinfo = (TextView) findViewById(R.id.sport_palyer_heart_rate);
 
+
         // inicializuj pripojenie OH1 senzoru
         connectPolarDevice();
 
 
         songList = new ArrayList<Song>();
 
-        // ziskaj list piesni v zariadeni a utried ich abecedne
         getSongList();
-        Collections.sort(songList, new Comparator<Song>() {
-            public int compare(Song a, Song b) {
-                return a.getTitle().compareTo(b.getTitle());
-            }
-        });
-        // ziskaj list piesni v zariadeni a utried ich abecedne FINN
-
-
-
 
         initializeUI();
         initializeSeekbar();
@@ -158,7 +196,6 @@ public class SportPlayer extends AppCompatActivity {
 
         if (musicCursor != null && musicCursor.moveToFirst()) {
 
-
             //get columns
             int titleColumn = musicCursor.getColumnIndex
                     (android.provider.MediaStore.Audio.Media.TITLE);
@@ -173,22 +210,25 @@ public class SportPlayer extends AppCompatActivity {
                 long thisId = musicCursor.getLong(idColumn);
                 String thisTitle = musicCursor.getString(titleColumn);
                 String thisArtist = musicCursor.getString(artistColumn);
-                songList.add(new Song(thisId, thisTitle, thisArtist, null));
+                String emotion = getEmotionStatusFromFile((int) thisId);
+                if (emotion.equals("")) emotion = "X";
+                songList.add(new Song(thisId, thisTitle, thisArtist, emotion));
             }
             while (musicCursor.moveToNext());
         }
+
+        Collections.sort(songList, new Comparator<Song>() {
+            public int compare(Song a, Song b) {
+                return a.getTitle().compareTo(b.getTitle());
+            }
+        });
     }
 
 
     @Override
     protected void onStart() {
         super.onStart();
-        mPlayerAdapter.loadMedia(ContentUris.withAppendedId(
-                android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                songList.get(0).getID()), songList.get(0));
-        Log.d(TAG, "onStart: create MediaPlayer");
     }
-
 
 
     @Override
@@ -202,33 +242,167 @@ public class SportPlayer extends AppCompatActivity {
         }
     }
 
-    private void initializeUI() {
-//        mTextDebug = (TextView) findViewById(R.id.car_playet_text);
-        ImageView mPlayButton = (ImageView) findViewById(R.id.car_player_play_button);
-        Button mPauseButton = (Button) findViewById(R.id.car_player_button2);
-        Button mResetButton = (Button) findViewById(R.id.car_player_button3);
-        mSeekbarAudio = (SeekBar) findViewById(R.id.car_player_seek_bar);
-//        mScrollContainer = (ScrollView) findViewById(R.id.car_player_scroll_view);
+    void playNextSong(boolean lastFinished) {
+        if (playEnabled) {
+            player_song_title.setText(songList.get(nextSong).getTitle());
+            player_song_artist.setText(songList.get(nextSong).getArtist());
 
-        mPauseButton.setOnClickListener(
-                new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        mPlayerAdapter.pause();
-                    }
-                });
+            mPlayerAdapter.loadMedia(ContentUris.withAppendedId(
+                    android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                    songList.get(nextSong).getID()), songList.get(nextSong));
+
+            if (mPlayerAdapter.isPlaying() || lastFinished) {
+                mPlayerAdapter.reset();
+                mPlayerAdapter.play();
+            } else mPlayerAdapter.reset();
+
+
+            songPosition = nextSong;
+            playedSongs.add(songPosition);
+
+            searchSongByEmotion();
+        }
+    }
+
+    void playBackSong() {
+        if (playEnabled) {
+            if (!(playedSongs.size() == 1)) {
+                playedSongs.remove(playedSongs.size() - 1);
+                songPosition = playedSongs.get(playedSongs.size() - 1);
+
+                player_song_title.setText(songList.get(songPosition).getTitle());
+                player_song_artist.setText(songList.get(songPosition).getArtist());
+
+            } else
+                Toast.makeText(getApplicationContext(), "Nothing to play before this", Toast.LENGTH_SHORT);
+
+            mPlayerAdapter.loadMedia(ContentUris.withAppendedId(
+                    android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                    songList.get(songPosition).getID()), songList.get(songPosition));
+            if (mPlayerAdapter.isPlaying()) {
+                mPlayerAdapter.reset();
+                mPlayerAdapter.play();
+            } else mPlayerAdapter.reset();
+        }
+    }
+
+
+    private void initializeUI() {
+
+        hrPicker = (NumberPicker) findViewById(R.id.sport_number_picker);
+
+        animFadein = AnimationUtils.loadAnimation(getApplicationContext(),
+                R.anim.fade_in);
+
+        progressBar = (ProgressBar) findViewById(R.id.sport_progress_bar);
+        playedSongs = new ArrayList<Integer>();
+
+        player_next_song_title = (TextView) findViewById(R.id.sport_next_song_title);
+        player_emotion_indicator = (ImageView) findViewById(R.id.sport_song_indicator);
+
+        player_song_title = (TextView) findViewById(R.id.sport_player_next_song_title);
+        player_song_artist = (TextView) findViewById(R.id.sport_player_song_artist);
+
+
+//        player_actual_time = (TextView) findViewById(R.id.car_player_actual_time);
+//        player_song_duration = (TextView) findViewById(R.id.car_player_song_duration);
+
+
+//        player_next_layout = (ConstraintLayout) findViewById(R.id.car_player_next_layout);
+//        player_back_layout = (ConstraintLayout) findViewById(R.id.car_player_back_layout);
+//        player_song_layout = (ConstraintLayout) findViewById(R.id.car_player_song_layout);
+
+//
+        auto_primary = (ImageView) findViewById(R.id.sport_player_mode_button);
+
+        playBackButton = (ImageView) findViewById(R.id.sport_play_back);
+        playNextButton = (ImageView) findViewById(R.id.sport_play_next);
+
+        sportLevelIndicator = (ImageView) findViewById(R.id.sport_level_indicator);
+
+
+        ImageView mPlayButton = (ImageView) findViewById(R.id.sport_play);
+
+//        mPauseButton = (Button) findViewById(R.id.car_player_button2);
+//        mResetButton = (Button) findViewById(R.id.car_player_button3);
+
+        sportCreateEmotionList = (Button) findViewById(R.id.sport_create_emotion_list);
+        sportCreateEmotionList.setVisibility(View.GONE);
+
+        mSeekbarAudio = (SeekBar) findViewById(R.id.sport_seek_bar);
+
+
+        hrPicker.setMinValue(60);
+        hrPicker.setMaxValue(190);
+        hrPicker.setValue(90);
+
+        hrPicker.setOnValueChangedListener(new NumberPicker.OnValueChangeListener() {
+            @Override
+            public void onValueChange(NumberPicker picker, int oldVal, int newVal) {
+                averageHeartRat = newVal;
+            }
+        });
+
+        auto_primary.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                if (mode_menu_open) {
+                    mode_menu_open = false;
+                } else {
+                    mode_menu_open = true;
+                }
+            }
+        });
+
+        playNextButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (playEnabled) {
+                    playNextSong(false);
+                    playNextButton.setImageResource(R.drawable.forward_button);
+
+                    final Handler handler = new Handler();
+                    handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            playNextButton.setImageResource(R.drawable.forward_button_clicked);
+                        }
+                    }, 200);
+                }
+            }
+        });
+        playBackButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (playEnabled) {
+                    playBackSong();
+                    playBackButton.setImageResource(R.drawable.back_button);
+
+                    final Handler handler = new Handler();
+                    handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            playBackButton.setImageResource(R.drawable.back_button_clicked);
+                        }
+                    }, 200);
+                }
+            }
+        });
+
         mPlayButton.setOnClickListener(
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
-                        mPlayerAdapter.play();
-                    }
-                });
-        mResetButton.setOnClickListener(
-                new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        mPlayerAdapter.reset();
+                        if (playEnabled) {
+                            if (mPlayerAdapter.isPlaying()) {
+                                mPlayerAdapter.pause();
+                                mPlayButton.setImageResource(R.drawable.play_stop_button_playing);
+                            } else {
+                                mPlayerAdapter.play();
+                                mPlayButton.setImageResource(R.drawable.play_stop_button);
+                            }
+                        }
                     }
                 });
     }
@@ -255,6 +429,7 @@ public class SportPlayer extends AppCompatActivity {
                     public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                         if (fromUser) {
                             userSelectedPosition = progress;
+//                            car_player_actual_time.setText(String.valueOf(progress));
                         }
                     }
 
@@ -290,27 +465,269 @@ public class SportPlayer extends AppCompatActivity {
 
         @Override
         public void onPlaybackCompleted() {
+            playNextSong(true);
         }
+
 
         @Override
         public void onLogUpdated(String message) {
-            if (mTextDebug != null) {
-                mTextDebug.append(message);
-                mTextDebug.append("\n");
-                // Moves the scrollContainer focus to the end.
-                mScrollContainer.post(
-                        new Runnable() {
-                            @Override
-                            public void run() {
-                                mScrollContainer.fullScroll(ScrollView.FOCUS_DOWN);
-                            }
-                        });
+//            if (mTextDebug != null) {
+//                mTextDebug.append(message);
+//                mTextDebug.append("\n");
+//                // Moves the scrollContainer focus to the end.
+//                mScrollContainer.post(
+//                        new Runnable() {
+//                            @Override
+//                            public void run() {
+//                                mScrollContainer.fullScroll(ScrollView.FOCUS_DOWN);
+//                            }
+//                        });
+//            }
+        }
+    }
+
+    @SuppressLint("SetTextI18n")
+    int searchSongByEmotion() {
+        int newSongPosition = songPosition;
+        boolean noEqual = false;
+        Log.e("DEBUGG", String.valueOf(songPosition));
+        if (newSongPosition + 1 != songList.size()) {
+            newSongPosition++;
+        } else newSongPosition = 0;
+
+        int temp = 0;
+//            Log.e("SearchingSong", "Telesny tep je " + String.valueOf(heartRate));
+        if (heartRate < averageHeartRat - 5) {
+            Log.e("SearchingSong", "Cheme zvacsovat ");
+
+            while (!songList.get(newSongPosition).getEmotionStatus().equals("R")) {
+//                    Log.e("SearchingSong", "song number " + newSongPosition + " with emotion status: " + songList.get(newSongPosition).getEmotionStatus() + " not fit into R //" + heartRate);
+                if (temp == songList.size()) {
+                    playEnabled = false;
+
+//                    mPauseButton.setVisibility(View.GONE);
+//                    mResetButton.setVisibility(View.GONE);
+
+
+//                    car_player_song_layout.setBackgroundResource(R.drawable.blue_background_warning);
+//                    car_player_back_layout.setBackgroundResource(R.drawable.blue_background_warning);
+//                    car_player_next_layout.setBackgroundResource(R.drawable.blue_background_warning);
+
+                    progressBar.setVisibility(View.GONE);
+                    createEmotionList();
+
+
+                    player_song_title.setText("No Songs in Rising Emotion List"); //todo doriesit presmerovanie na emocny zoznam
+                    player_song_artist.setVisibility(View.GONE);
+                    sportCreateEmotionList.setVisibility(View.VISIBLE);
+
+                    noEqual = true;
+                    break;
+                }
+
+                if (newSongPosition + 1 != songList.size()) {
+                    newSongPosition++;
+                    temp++;
+                } else newSongPosition = 0;
             }
+        } else {
+            if (heartRate > averageHeartRat + 5) {
+                Log.e("SearchingSong", "Cheme zmensovat ");
+//                    Log.e("SearchingSong", String.valueOf(songList.get(newSongPosition).getEmotionStatus().equals("D")));
+//                    Log.e("SearchingSong", String.valueOf(songList.get(newSongPosition).getEmotionStatus()));
+
+                while (!songList.get(newSongPosition).getEmotionStatus().equals("D")) {
+//                        Log.e("SearchingSong", "song " + songList.get(newSongPosition).getTitle() + " with emotion status: " + songList.get(newSongPosition).getEmotionStatus() + " not fit into D //" + heartRate);
+                    if (temp == songList.size()) {
+                        playEnabled = false;
+
+                        progressBar.setVisibility(View.GONE);
+                        createEmotionList();
+                        player_song_title.setText("No Songs in Rising Emotion List"); //todo doriesit presmerovanie na emocny zoznam
+                        player_song_artist.setVisibility(View.GONE);
+                        sportCreateEmotionList.setVisibility(View.VISIBLE);
+
+                        noEqual = true;
+                        break;
+                    }
+
+                    if (newSongPosition + 1 != songList.size()) {
+                        newSongPosition++;
+                        temp++;
+                    } else newSongPosition = 0;
+                }
+            } else {
+                while (!songList.get(newSongPosition).getEmotionStatus().equals("N")) {
+                    Log.e("SearchingSong", "Ostavame neutral ");
+//                        Log.e("SearchingSong", "song number " + newSongPosition + " with emotion status: " + songList.get(newSongPosition).getEmotionStatus() + " not fit into N //" + heartRate);
+                    if (temp == songList.size()) {
+                        playEnabled = false;
+
+                        progressBar.setVisibility(View.GONE);
+                        createEmotionList();
+
+                        player_song_title.setText("No Songs in Rising Emotion List"); //todo doriesit presmerovanie na emocny zoznam
+                        player_song_artist.setVisibility(View.GONE);
+                        sportCreateEmotionList.setVisibility(View.VISIBLE);
+                        noEqual = true;
+                        break;
+                    }
+                    if (newSongPosition + 1 != songList.size()) {
+                        newSongPosition++;
+                        temp++;
+                    } else newSongPosition = 0;
+                }
+            }
+        }
+
+        if (noEqual) {
+            Log.e("SearchingSong", "Nenasli sme ziadnu zhodu emocii, vyberame dalsiu piesen v poradi");
+            playEnabled = false;
+            return -1;
+        } else {
+            Log.e("SearchingSong", "Vyberame piesen: " + songList.get(newSongPosition).getTitle() + " - " + songList.get(newSongPosition).getEmotionStatus());
+            nextSong = newSongPosition;
+
+            String songEmotionStatus = songList.get(nextSong).getEmotionStatus();
+            player_next_song_title.setText(songList.get(nextSong).getTitle());
+
+            if (songEmotionStatus.equals("R")) {
+                player_emotion_indicator.setImageResource(R.drawable.note_green);
+                player_next_song_title.setTextColor(getResources().getColor(R.color.green));
+            } else if (songEmotionStatus.equals("D")) {
+                player_emotion_indicator.setImageResource(R.drawable.note_red);
+                player_next_song_title.setTextColor(getResources().getColor(R.color.red));
+            } else {
+                player_emotion_indicator.setImageResource(R.drawable.note_yellow);
+                player_next_song_title.setTextColor(getResources().getColor(R.color.gold));
+            }
+
+            return 1;
         }
     }
 
 
+    private void createEmotionList() {
+        sportCreateEmotionList.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mPlayerAdapter.release();
+                Intent intent = new Intent(getApplicationContext(), MusicPlayer.class);
+                startActivity(intent);
+            }
+        });
+    }
+
+    private String getEmotionStatusFromFile(int songID) {
+        String emotion = "";
+        try {
+            InputStream inputStream = getApplicationContext().openFileInput("SongEmotions");
+            if (inputStream != null) {
+                InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
+                BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+                String line = bufferedReader.readLine();
+                do {
+                    if (line.split(" ")[0].equals(String.valueOf(songID))) {
+                        emotion = line.split(" ")[1];
+                        break;
+                    }
+                    line = bufferedReader.readLine();
+                } while (line != null);
+                inputStream.close();
+            }
+        } catch (FileNotFoundException e) {
+            Log.e("SongAdapter", "File not found: " + e.toString());
+        } catch (IOException e) {
+            Log.e("SongAdapter", "Can not read file: " + e.toString());
+        }
+        return emotion;
+    }
+
+    // tento blok kodu kazdych 7 sekund spravi priemer zo ziskanych hodnot zo senzoru a stanovi priemernu hodnotu tepu
+    ArrayList<Integer> hrValues = new ArrayList<Integer>();
+    public static Handler myHandler = new Handler();
+    private static final int TIME_TO_WAIT = 7000;
+
+    Runnable myRunnable = new Runnable() {
+        @Override
+        public void run() {
+            int hrCount = 0;
+            for (int i = 0; i < hrValues.size(); i++) {
+                hrCount += hrValues.get(i);
+            }
+
+            heartRate = hrCount / hrValues.size();
+
+
+            heartRateinfo.startAnimation(animFadein);
+
+            Log.e("DEBUGGg", String.valueOf(songPosition));
+
+            if (searchSongByEmotion() != -1) {
+                if (!playEnabled) {
+
+                    mPlayerAdapter.loadMedia(ContentUris.withAppendedId(
+                            android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                            songList.get(nextSong).getID()), songList.get(nextSong));
+
+                    songPosition = nextSong;
+                    playedSongs.add(songPosition);
+
+                    progressBar.setVisibility(View.GONE);
+//                    player_actual_time.setVisibility(View.VISIBLE);
+//                    player_song_duration.setVisibility(View.VISIBLE);
+
+                    playEnabled = true;
+
+                    player_song_title.setText(songList.get(nextSong).getTitle());
+                    player_song_artist.setText(songList.get(nextSong).getArtist());
+
+                    searchSongByEmotion();
+                }
+            }
+
+
+            //Log.e("HEARTRATE", "Actual avaregae measurment of Heart Rate is: "+heartRate);
+            hrValues.clear();
+            restartCountingHR();
+        }
+    };
+    // fin
+
+    public void startCountingHR(int hrData) {
+        myHandler.postDelayed(myRunnable, TIME_TO_WAIT);
+    }
+
+    public void stopCountingHR() {
+        myHandler.removeCallbacks(myRunnable);
+    }
+
+    public void restartCountingHR() {
+        myHandler.removeCallbacks(myRunnable);
+        myHandler.postDelayed(myRunnable, TIME_TO_WAIT);
+    }
+
+
+    private void updateLevelIndicator(int hrData) {
+        ConstraintLayout sport_cinka = findViewById(R.id.sport_cinka);
+
+        if (hrData < averageHeartRat - 5) {
+            sportLevelIndicator.setImageResource(R.drawable.sport_up);
+            sport_cinka.setBackgroundResource(R.drawable.sport_cinka_blue);
+        } else if (hrData > averageHeartRat + 5) {
+            sportLevelIndicator.setImageResource(R.drawable.sport_down);
+            sport_cinka.setBackgroundResource(R.drawable.sport_cinka_red);
+        } else {
+            sportLevelIndicator.setImageResource(R.drawable.sport_ok);
+            sport_cinka.setBackgroundResource(R.drawable.sport_cinka_green);
+        }
+
+    }
+
     void connectPolarDevice() {
+        final Handler handler = new Handler();
+        final boolean[] runnableFlag = {false};
+
         //polar device
         api = PolarBleApiDefaultImpl.defaultImplementation(this, PolarBleApi.ALL_FEATURES);
         api.setPolarFilter(false);
@@ -393,9 +810,20 @@ public class SportPlayer extends AppCompatActivity {
                     @Override
                     public void accept(PolarHrBroadcastData polarBroadcastData) throws Exception {
 
-                        heartRateinfo.setText(String.valueOf(polarBroadcastData.hr));
-                        heartRate = polarBroadcastData.hr;
-//                        Log.d(TAG,"HR SenZOR OH1 BROADCAST " +
+                        player_song_title.setVisibility(View.VISIBLE);
+
+                        senzorData = polarBroadcastData.hr;
+
+                        updateLevelIndicator(senzorData);
+                        heartRateinfo.setText(String.valueOf(senzorData));
+
+                        hrValues.add(senzorData);
+
+
+                        if (!runnableFlag[0]) startCountingHR(polarBroadcastData.hr);
+                        runnableFlag[0] = true; // when we started average counting, we can disable start of runnable counter
+
+//                        Log.d(TAG, "HR SenZOR OH1 BROADCAST " +
 //                                polarBroadcastData.polarDeviceInfo.deviceId + " HR: " +
 //                                polarBroadcastData.hr + " batt: " +
 //                                polarBroadcastData.batteryStatus);

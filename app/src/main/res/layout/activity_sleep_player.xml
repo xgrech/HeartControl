@@ -4,60 +4,184 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
+    android:theme="@style/DarkTheme"
     android:layout_height="match_parent">
+
 
     <TextView
         android:id="@+id/sleep_palyer_heart_rate"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="20dp"
-        android:layout_marginTop="4dp"
+        android:layout_marginStart="44dp"
+        android:layout_marginTop="16dp"
         android:text="-"
         android:textAlignment="center"
-        android:textColor="#FFFEFE"
+        android:textColor="#ECE7E7"
         android:textSize="30sp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <ImageView
-        android:id="@+id/sleep_player_heart_rate_background"
-        android:layout_width="157dp"
-        android:layout_height="114dp"
-        android:layout_marginEnd="280dp"
-        android:layout_marginBottom="520dp"
-        app:layout_constraintBottom_toTopOf="@+id/sleep_back"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/constraintLayout"
+        android:layout_width="280dp"
+        android:layout_height="99dp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:srcCompat="@drawable/black_circle"
-        tools:visibility="visible" />
+        app:layout_constraintTop_toTopOf="parent">
 
-    <Button
-        android:id="@+id/sleep_back"
+        <Switch
+            android:id="@+id/sleep_auto_mode_switch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="136dp"
+            android:layout_marginTop="36dp"
+            android:text="AutoTurnOff"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/sleep_main_layout"
+        android:layout_width="407dp"
+        android:layout_height="393dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        tools:layout_editor_absoluteY="91dp">
+
+        <TextView
+            android:id="@+id/sleep_song_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="256dp"
+            android:text="Song Title"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/sleep_song_artist"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/sleep_song_title" />
+
+        <TextView
+            android:id="@+id/sleep_time"
+            android:layout_width="268dp"
+            android:layout_height="81dp"
+            android:layout_marginTop="95dp"
+            android:text="Time"
+            android:textAlignment="center"
+            android:textSize="30sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <ListView
+        android:id="@+id/sleep_song_list"
+        android:layout_width="406dp"
+        android:layout_height="379dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="8dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.545"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/constraintLayout"
+        app:layout_constraintVertical_bias="0.069"
+        tools:visibility="gone">
+
+    </ListView>
+
+    <ProgressBar
+        android:id="@+id/sleep_progressBar"
+        style="?android:attr/progressBarStyle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="47dp"
-        android:layout_marginBottom="64dp"
-        android:text="Back"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        android:layout_marginStart="36dp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
-    <Button
-        android:id="@+id/sleep_next"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="23dp"
-        android:layout_marginBottom="63dp"
-        android:text="Next"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="0dp"
+        android:layout_height="0dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/sleep_play" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/sleep_main_layout">
 
-    <Button
-        android:id="@+id/sleep_play"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="24dp"
-        android:layout_marginBottom="64dp"
-        android:text="Play"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/sleep_back" />
+        <Button
+            android:id="@+id/sleep_button2"
+            android:layout_width="90dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="99dp"
+            android:text="Button"
+            app:layout_constraintStart_toEndOf="@+id/sleep_button1"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <Button
+            android:id="@+id/sleep_button1"
+            android:layout_width="90dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="72dp"
+            android:text="Button"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageView
+            android:id="@+id/sleep_play_next"
+            android:layout_width="81dp"
+            android:layout_height="76dp"
+            android:layout_marginStart="36dp"
+            android:layout_marginTop="64dp"
+            app:layout_constraintStart_toEndOf="@+id/sleep_play"
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@drawable/sleep_forward_button" />
+
+        <ImageView
+            android:id="@+id/sleep_play_back"
+            android:layout_width="70dp"
+            android:layout_height="64dp"
+            android:layout_marginStart="56dp"
+            android:layout_marginTop="68dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@drawable/sleep_back_button" />
+
+        <ImageView
+            android:id="@+id/sleep_play"
+            android:layout_width="86dp"
+            android:layout_height="86dp"
+            android:layout_marginStart="36dp"
+            android:layout_marginTop="56dp"
+            app:layout_constraintStart_toEndOf="@+id/sleep_play_back"
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@drawable/sleep_play_button" />
+
+        <SeekBar
+            android:id="@+id/sleep_seek_bar"
+            android:layout_width="279dp"
+            android:layout_height="29dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginBottom="16dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <ImageView
+            android:id="@+id/sleep_mode"
+            android:layout_width="66dp"
+            android:layout_height="69dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:srcCompat="@drawable/sleep_primary" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

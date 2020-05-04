@@ -60,7 +60,7 @@ public class Menu extends AppCompatActivity {
 
     ImageView heartRateBackground;
     TextView heartRateinfo;
-    Button musicPlayer, options, logout, carPlayer;
+    Button musicPlayer, options, logout, carPlayer, menu_sport, menu_sleep;
 
     private FirebaseAuth mAuth;
     private FirebaseDatabase mFirebaseDatabaseInstance;
@@ -70,7 +70,7 @@ public class Menu extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_menu);
-
+        inicializeTermination();
 
         Animation animFadeinFast = AnimationUtils.loadAnimation(getApplicationContext(),
                 R.anim.fade_in_fast);
@@ -99,6 +99,8 @@ public class Menu extends AppCompatActivity {
         heartRateBackground = (ImageView) findViewById(R.id.menu_heart_rate_background);
         heartRateinfo = (TextView) findViewById(R.id.menu_heart_rate);
         carPlayer = (Button) findViewById(R.id.menu_car);
+        menu_sport = (Button) findViewById(R.id.menu_sport);
+        menu_sleep = (Button) findViewById(R.id.menu_sleep);
 
         checkNewUser();
 
@@ -143,6 +145,23 @@ public class Menu extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(getApplicationContext(), CarPlayer.class);
+                startActivity(intent);
+            }
+        });
+
+
+        menu_sport.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(getApplicationContext(), SportPlayer.class);
+                startActivity(intent);
+            }
+        });
+
+        menu_sleep.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(getApplicationContext(), SleepPlayer.class);
                 startActivity(intent);
             }
         });
@@ -285,7 +304,16 @@ public class Menu extends AppCompatActivity {
                 }
         );
     }
-
+    public void inicializeTermination() {
+        String value  = getIntent().getStringExtra("TERMINATE_APP");
+        if (value!= null) {
+            Log.e("TERMINATOR", getIntent().getStringExtra("TERMINATE_APP"));
+            if (getIntent().getStringExtra("TERMINATE_APP").equals("1")) {
+                finishAndRemoveTask();
+                System.exit(0);
+            }
+        }
+    }
     void checkNewUser() {
         FirebaseDatabase database = FirebaseDatabase.getInstance();
         DatabaseReference dbUsersRef = database.getReference("users");

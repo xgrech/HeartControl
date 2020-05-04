@@ -32,7 +32,7 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <ListView
-        android:id="@+id/song_list"
+        android:id="@+id/sleep_song_list"
         android:layout_width="409dp"
         android:layout_height="494dp"
         android:layout_marginStart="8dp"

@@ -6,36 +6,231 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <Button
-        android:id="@+id/button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="156dp"
-        android:layout_marginBottom="511dp"
-        android:text="Button"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
-
     <ImageView
         android:id="@+id/sport_player_heart_rate_background"
         android:layout_width="157dp"
         android:layout_height="114dp"
-        android:layout_marginEnd="308dp"
-        android:layout_marginBottom="112dp"
-        app:layout_constraintBottom_toTopOf="@+id/button"
+        android:layout_marginEnd="300dp"
+        android:layout_marginBottom="16dp"
+        app:layout_constraintBottom_toTopOf="@+id/sport_cinka"
         app:layout_constraintEnd_toEndOf="parent"
-        app:srcCompat="@drawable/black_circle"
+        app:srcCompat="@drawable/green_circle"
         tools:visibility="visible" />
 
     <TextView
         android:id="@+id/sport_palyer_heart_rate"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="24dp"
-        android:text="-"
+        android:layout_marginStart="28dp"
+        android:layout_marginTop="4dp"
         android:textAlignment="center"
-        android:textColor="#FFFEFE"
+        android:textColor="#151313"
         android:textSize="30sp"
+        android:textStyle="bold"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/sport_cinka"
+        android:layout_width="match_parent"
+        android:layout_height="265dp"
+        android:background="@drawable/sport_cinka_green"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/constraintLayout3">
+
+
+        <NumberPicker
+            android:id="@+id/sport_number_picker"
+            style="@android:style/Widget.Material.NumberPicker"
+            android:layout_width="96dp"
+            android:layout_height="114dp"
+            android:layout_marginTop="42dp"
+            android:layout_marginBottom="43dp"
+            android:theme="@style/NumberPickerText"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.498"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.666" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/constraintLayout2"
+        android:layout_width="406dp"
+        android:layout_height="108dp"
+        android:layout_marginTop="1dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/sport_cinka">
+
+        <Button
+            android:id="@+id/sport_create_emotion_list"
+            style="@style/Widget.AppCompat.Button.Borderless.Colored"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="52dp"
+            android:text="Create List"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/sport_player_next_song_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="171dp"
+            android:layout_marginTop="22dp"
+            android:layout_marginEnd="181dp"
+            android:text="Song title"
+            android:textAlignment="center"
+            android:textColor="#0B0A0A"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/sport_player_song_artist"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="171dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="181dp"
+            android:textAlignment="center"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/sport_player_next_song_title"
+            tools:visibility="visible" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="413dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="1dp"
+        android:layout_marginTop="1dp"
+        android:layout_marginEnd="1dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/constraintLayout2"
+        app:layout_constraintVertical_bias="0.0">
+
+        <ImageView
+            android:id="@+id/sport_player_mode_button"
+            android:layout_width="77dp"
+            android:layout_height="73dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:srcCompat="@drawable/sport_corner_mode" />
+
+        <ImageView
+            android:id="@+id/sport_play_back"
+            android:layout_width="76dp"
+            android:layout_height="76dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="44dp"
+            app:layout_constraintEnd_toStartOf="@+id/sport_play"
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@drawable/back_button_clicked" />
+
+        <ImageView
+            android:id="@+id/sport_play"
+            android:layout_width="89dp"
+            android:layout_height="98dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@drawable/play_stop_button_playing" />
+
+        <ImageView
+            android:id="@+id/sport_play_next"
+            android:layout_width="76dp"
+            android:layout_height="76dp"
+            android:layout_marginStart="44dp"
+            android:layout_marginTop="16dp"
+            app:layout_constraintStart_toEndOf="@+id/sport_play"
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@drawable/forward_button_clicked" />
+
+        <ImageView
+            android:id="@+id/sport_song_indicator"
+            android:layout_width="66dp"
+            android:layout_height="64dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="22dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/sport_seek_bar"
+            app:srcCompat="@drawable/note" />
+
+        <SeekBar
+            android:id="@+id/sport_seek_bar"
+            android:layout_width="378dp"
+            android:layout_height="27dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="20dp"
+            android:layout_marginEnd="15dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/sport_play" />
+
+        <TextView
+            android:id="@+id/sport_next_song_title"
+            android:layout_width="240dp"
+            android:layout_height="34dp"
+            android:layout_marginTop="6dp"
+            android:textColor="#171414"
+            app:layout_constraintStart_toEndOf="@+id/sport_song_indicator"
+            app:layout_constraintTop_toBottomOf="@+id/sport_next_song_panel" />
+
+        <TextView
+            android:id="@+id/sport_next_song_panel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="26dp"
+            android:text="Next song:"
+            app:layout_constraintStart_toEndOf="@+id/sport_song_indicator"
+            app:layout_constraintTop_toBottomOf="@+id/sport_seek_bar" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/constraintLayout3"
+        android:layout_width="295dp"
+        android:layout_height="90dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/sport_player_heart_rate_background"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ImageView
+            android:id="@+id/sport_level_indicator"
+            android:layout_width="120dp"
+            android:layout_height="72dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="150dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="1.0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@drawable/sport_ok" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <ProgressBar
+        android:id="@+id/sport_progress_bar"
+        style="?android:attr/progressBarStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="56dp"
+        android:layout_marginTop="4dp"
+        app:layout_constraintStart_toStartOf="@+id/sport_player_heart_rate_background"
+        app:layout_constraintTop_toTopOf="parent" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

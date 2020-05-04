@@ -3,6 +3,7 @@ package com.egrech.app.heartcontrol;
 import android.content.Intent;
 import android.os.Handler;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 
@@ -14,6 +15,8 @@ public class Launcher extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_launcher);
+
+        inicializeTermination();
 
         Animation animFadein = AnimationUtils.loadAnimation(getApplicationContext(),
                 R.anim.fade_in);
@@ -30,11 +33,28 @@ public class Launcher extends AppCompatActivity {
 
             @Override
             public void run() {
-                Intent intent = new Intent(getApplicationContext(), Menu.class);
+//                Intent intent = new Intent(getApplicationContext(), Menu.class);
+                Intent intent = new Intent(getApplicationContext(), SleepPlayer.class);
 //                Intent intent = new Intent(getApplicationContext(), Login.class);
                 startActivity(intent);
             }
-        }, 1800 );//time in milisecond
+        }, 1800);//time in milisecond
 
+    }
+
+    public void inicializeTermination() {
+        String value  = getIntent().getStringExtra("TERMINATE_APP");
+        if (value!= null) {
+            Log.e("TERMINATOR", getIntent().getStringExtra("TERMINATE_APP"));
+            if (getIntent().getStringExtra("TERMINATE_APP").equals("1")) {
+                finishAndRemoveTask();
+                System.exit(0);
+            }
+        }
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
     }
 }
