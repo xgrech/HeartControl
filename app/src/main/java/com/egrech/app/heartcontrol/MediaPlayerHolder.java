@@ -2,7 +2,6 @@ package com.egrech.app.heartcontrol;
 
 
 import android.content.Context;
-import android.content.res.AssetFileDescriptor;
 import android.media.MediaPlayer;
 import android.net.Uri;
 
@@ -54,6 +53,20 @@ public final class MediaPlayerHolder implements PlayerAdapter {
             });
             logToUI("mMediaPlayer = new MediaPlayer()");
         }
+    }
+
+    public int getSongDuration() {
+        if (mMediaPlayer != null) {
+            return mMediaPlayer.getDuration();
+        }
+        return 0;
+    }
+
+    public int getCurrentPosition() {
+        if (mMediaPlayer != null) {
+            return mMediaPlayer.getCurrentPosition();
+        }
+        return 0;
     }
 
     public void setPlaybackInfoListener(PlaybackInfoListener listener) {

@@ -31,32 +31,26 @@ import android.os.Handler;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.NumberPicker;
 import android.widget.ProgressBar;
-import android.widget.ScrollView;
 import android.widget.SeekBar;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.sql.Time;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -86,7 +80,7 @@ public class SleepPlayer extends AppCompatActivity {
     int averageHeartRat = 90; // todo doriesit analyzator priemerneho tepu
 
     int heartRate;
-    int senzorData = 0;
+    int senzorData = -1;
 
     private ImageView mode_button;
 
@@ -114,16 +108,26 @@ public class SleepPlayer extends AppCompatActivity {
     private ArrayList<Integer> playedSongs;
 
 
-    private NumberPicker hrPicker;
-
     private CountDownTimer countDown;
-    private long timeToCount = 10000;
+    private long timeToCount = 300000; // 5 Min
     boolean timeRunning;
 
-    private TextView timeCount;
-    private boolean writeFlag;
-//    private Button startCountdown;
+    private Button startCountdown;
 
+
+    private boolean autoSleep = false;
+    private Switch autoSleepSwitch;
+
+    private NumberPicker hour_picker;
+    private NumberPicker minute_picker;
+    private NumberPicker second_picker;
+
+    private ConstraintLayout countDownLayout;
+    private ImageView mPlayButton;
+
+    private User currentUser;
+
+    MediaPlayerHolder mMediaPlayerHolder;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -148,11 +152,12 @@ public class SleepPlayer extends AppCompatActivity {
         songList = new ArrayList<Song>();
         getSongList();
 
-        writeFlag = false;
 
         initializeUI();
         initializeSeekbar();
         initializePlaybackController();
+
+        getCurrentUser();
     }
 
     void checkForPermission() {
@@ -229,7 +234,7 @@ public class SleepPlayer extends AppCompatActivity {
 
         playedSongs.add(songPosition);
 
-        progressBar.setVisibility(View.GONE);
+        progressBar.setVisibility(View.VISIBLE);
 //                    player_actual_time.setVisibility(View.VISIBLE);
 //                    player_song_duration.setVisibility(View.VISIBLE);
 
@@ -292,9 +297,19 @@ public class SleepPlayer extends AppCompatActivity {
 
 
     private void initializeUI() {
+        player_actual_time = (TextView) findViewById(R.id.sleep_actual_song_time);
+        player_song_duration = (TextView) findViewById(R.id.sleep_song_duration);
 
 
-        timeCount = (TextView) findViewById(R.id.sleep_time);
+        startCountdown = (Button) findViewById(R.id.sleep_start_timer);
+        countDownLayout = (ConstraintLayout) findViewById(R.id.sleep_picker_layout);
+
+        hour_picker = (NumberPicker) findViewById(R.id.sleep_hour_picker);
+        minute_picker = (NumberPicker) findViewById(R.id.sleep_minute_picker);
+        second_picker = (NumberPicker) findViewById(R.id.sleep_second_picker);
+
+
+        autoSleepSwitch = (Switch) findViewById(R.id.sleep_auto_mode_switch);
 
 
         progressBar = (ProgressBar) findViewById(R.id.sleep_progressBar);
@@ -320,47 +335,112 @@ public class SleepPlayer extends AppCompatActivity {
         playNextButton = (ImageView) findViewById(R.id.sleep_play_next);
 
 
-        ImageView mPlayButton = (ImageView) findViewById(R.id.sleep_play);
+        mPlayButton = (ImageView) findViewById(R.id.sleep_play);
 
 //        mPauseButton = (Button) findViewById(R.id.car_player_button2);
 //        mResetButton = (Button) findViewById(R.id.car_player_button3);
 
         mSeekbarAudio = (SeekBar) findViewById(R.id.sleep_seek_bar);
 
-        Button startTimer = (Button) findViewById(R.id.sleep_button1);
+        hour_picker.setMinValue(0);
+        hour_picker.setMaxValue(12);
+        hour_picker.setValue(0);
 
-        startTimer.setOnClickListener(new View.OnClickListener() {
+        minute_picker.setMinValue(0);
+        minute_picker.setMaxValue(60);
+        minute_picker.setValue(5);
+
+        second_picker.setMinValue(0);
+        second_picker.setMaxValue(60);
+        second_picker.setValue(0);
+
+        second_picker.setOnValueChangedListener(new NumberPicker.OnValueChangeListener() {
             @Override
-            public void onClick(View v) {
-                if (!timeRunning) {
-                    countDown = new CountDownTimer(timeToCount, 1000) {
-                        @SuppressLint("SetTextI18n")
-                        @Override
-                        public void onTick(long millisUntilFinished) {
-                            timeToCount = millisUntilFinished;
-                            int minutes = (int) timeToCount / 10000;
-                            int secondes = (int) timeToCount % 10000 / 1000;
-
-                            if (secondes < 10) {
-                                timeCount.setText(minutes + ":0" + secondes);
-                            }
-                            timeCount.setText(minutes + ":" + secondes);
-                            timeRunning = true;
-                        }
-
-                        @Override
-                        public void onFinish() {
-//                            writeTimeStamp();
-                        }
-                    }.start();
-                } else {
+            public void onValueChange(NumberPicker picker, int oldVal, int newVal) {
+                if (timeRunning) {
                     countDown.cancel();
                     timeRunning = false;
+                }
+                long secMS = newVal * 1000;
+                long minMS = minute_picker.getValue() * 60000;
+                long horMS = hour_picker.getValue() * 3600000;
+                ;
+                timeToCount = secMS + minMS + horMS;
+                startCountdown.setText("Start");
 
+            }
+        });
+        minute_picker.setOnValueChangedListener(new NumberPicker.OnValueChangeListener() {
+            @Override
+            public void onValueChange(NumberPicker picker, int oldVal, int newVal) {
+                if (timeRunning) {
+                    countDown.cancel();
+                    timeRunning = false;
+                }
+                long secMS = second_picker.getValue() * 1000;
+                long minMS = newVal * 60000;
+                long horMS = hour_picker.getValue() * 3600000;
+                ;
+                timeToCount = secMS + minMS + horMS;
+                startCountdown.setText("Start");
+
+            }
+        });
+        hour_picker.setOnValueChangedListener(new NumberPicker.OnValueChangeListener() {
+            @SuppressLint("SetTextI18n")
+            @Override
+            public void onValueChange(NumberPicker picker, int oldVal, int newVal) {
+                if (timeRunning) {
+                    countDown.cancel();
+                    timeRunning = false;
+                }
+                long secMS = second_picker.getValue() * 1000;
+                long minMS = minute_picker.getValue() * 60000;
+                long horMS = newVal * 3600000;
+                timeToCount = secMS + minMS + horMS;
+                startCountdown.setText("Start");
+            }
+        });
+
+
+        startCountdown.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (timeRunning) {
+                    timeRunning = false;
+                    countDown.cancel();
+                } else {
+                    startTimer();
                 }
             }
         });
 
+        Calendar c = Calendar.getInstance();
+        TextView autoSleepSwitchText = (TextView) findViewById(R.id.sleep_switch_text);
+
+        autoSleepSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @SuppressLint("SetTextI18n")
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (senzorData == -1) {
+                    autoSleepSwitch.setChecked(false);
+                } else {
+                    autoSleep = !autoSleep;
+                    if (!autoSleep) {
+                        timeToCount = 300000; // 5 min
+                        countDownLayout.setVisibility(View.VISIBLE);
+                        autoSleepSwitchText.setTextColor(getApplicationContext().getResources().getColor(R.color.white));
+                    } else {
+                        if (countDown != null) {
+                            countDown.cancel();
+                            timeRunning = false;
+                        }
+                        countDownLayout.setVisibility(View.GONE);
+                        autoSleepSwitchText.setTextColor(getApplicationContext().getResources().getColor(R.color.angryDelfin));
+                    }
+                }
+            }
+        });
 
         mode_button.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -420,28 +500,59 @@ public class SleepPlayer extends AppCompatActivity {
                 });
     }
 
+    @SuppressLint("SetTextI18n")
+    private void startTimer() {
+        countDown = new CountDownTimer(timeToCount, 1000) {
+            @SuppressLint("SetTextI18n")
+            @Override
+            public void onTick(long millisUntilFinished) {
+                timeToCount = millisUntilFinished;
+
+                int hours = Math.floorDiv((int) timeToCount, 3600000);
+                int minutes = Math.floorDiv((int) timeToCount % 3600000, 60000);
+                int secondes = (int) ((timeToCount % 36000000) % 60000) / 1000;
+
+                second_picker.setValue(secondes);
+                minute_picker.setValue(minutes);
+                hour_picker.setValue(hours);
+
+                Log.e("COUNTDOWN", String.valueOf(hours) + ":" + String.valueOf(minutes) + ":" + String.valueOf(secondes));
+                timeRunning = true;
+            }
+
+            @Override
+            public void onFinish() {
+                writeTimeStamp();
+            }
+        }.start();
+
+        startCountdown.setText("Stop");
+    }
+
 
     private void writeTimeStamp() {
         FirebaseDatabase database = FirebaseDatabase.getInstance();
         DatabaseReference dbUsersRef = database.getReference("sleeper");
 
         String time = String.valueOf(Calendar.getInstance().getTime());
-        timeCount.setText(time);
 
         dbUsersRef.child(String.valueOf("sleepSession")).setValue(time).addOnCompleteListener(new OnCompleteListener<Void>() {
             @Override
             public void onComplete(@NonNull Task<Void> task) {
                 mPlayerAdapter.release();
+                mPlayButton.setImageResource(R.drawable.sleep_play_button);
 //                Intent intent = new Intent(getApplicationContext(), Menu.class);
 //                intent.putExtra("TERMINATE_APP", 1);
 //                startActivity(intent);
+
+
             }
         });
     }
 
 
     private void initializePlaybackController() {
-        MediaPlayerHolder mMediaPlayerHolder = new MediaPlayerHolder(this);
+        mMediaPlayerHolder = new MediaPlayerHolder(this);
         Log.d(TAG, "initializePlaybackController: created MediaPlayerHolder");
         mMediaPlayerHolder.setPlaybackInfoListener(new SleepPlayer.PlaybackListener());
         mPlayerAdapter = mMediaPlayerHolder;
@@ -474,11 +585,38 @@ public class SleepPlayer extends AppCompatActivity {
                 });
     }
 
+    private void changeSongPosition() {
+        int hours = Math.floorDiv((int) mMediaPlayerHolder.getCurrentPosition(), 3600000);
+        int minutes = Math.floorDiv((int) mMediaPlayerHolder.getCurrentPosition() % 3600000, 60000);
+        int secondes = (int) ((mMediaPlayerHolder.getCurrentPosition() % 36000000) % 60000) / 1000;
+        if (hours != 0){
+            if (secondes < 10) {
+                player_actual_time.setText(String.valueOf(hours + ":" +minutes+ ":0" + secondes));
+            } else player_actual_time.setText(String.valueOf(hours + ":" +minutes+ ":" + secondes));
+        } else if (secondes < 10) {
+            player_actual_time.setText(String.valueOf(minutes+ ":0" + secondes));
+        } else player_actual_time.setText(String.valueOf(minutes+ ":" + secondes));
+    }
+
     public class PlaybackListener extends PlaybackInfoListener {
 
         @Override
         public void onDurationChanged(int duration) {
             mSeekbarAudio.setMax(duration);
+
+            int hours = Math.floorDiv((int) mMediaPlayerHolder.getSongDuration(), 3600000);
+            int minutes = Math.floorDiv((int) mMediaPlayerHolder.getSongDuration() % 3600000, 60000);
+            int secondes = (int) ((mMediaPlayerHolder.getSongDuration() % 36000000) % 60000) / 1000;
+
+            if (hours != 0){
+                if (secondes < 10) {
+                    player_song_duration.setText(String.valueOf(hours + ":" +minutes+ ":0" + secondes));
+                } else player_song_duration.setText(String.valueOf(hours + ":" +minutes+ ":0" + secondes));
+            } else if (secondes < 10) {
+                player_song_duration.setText(String.valueOf(minutes+ ":0" + secondes));
+            } else player_song_duration.setText(String.valueOf(minutes+ ":" + secondes));
+
+
             Log.d(TAG, String.format("setPlaybackDuration: setMax(%d)", duration));
         }
 
@@ -517,17 +655,69 @@ public class SleepPlayer extends AppCompatActivity {
 //                        });
 //            }
         }
+
     }
 
+    private void saveUser(String userId) {
+        FirebaseDatabase database = FirebaseDatabase.getInstance();
+        DatabaseReference dbUsersRef = database.getReference("users");
+
+        dbUsersRef.child(String.valueOf(userId)).setValue(currentUser);
+    }
+
+    void getCurrentUser() {
+        FirebaseDatabase database = FirebaseDatabase.getInstance();
+        DatabaseReference dbUsersRef = database.getReference("users");
+
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+
+        dbUsersRef.child(user.getUid()).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                // This method is called once with the initial value and again
+                // whenever data at this location is updated.
+                User value = dataSnapshot.getValue(User.class);
+
+                Log.d("GetUser", "Value is: " + value);
+                currentUser = value;
+            }
+
+            @Override
+            public void onCancelled(DatabaseError error) {
+                // Failed to read value
+                Log.d("LoginUserCheck", "Didnt catch data of user");
+            }
+        });
+    }
+
+    private int getUserAverageSleepTreshold() {
+        int hrCount = 0;
+
+        String[] values = new String[]{};
+        ArrayList<Integer> intValues = new ArrayList<Integer>();
+        if (currentUser.sleepAverageValues != null) {
+            values = currentUser.sleepAverageValues.split(" ");
+            for (String value : values) {
+                intValues.add(Integer.parseInt(value));
+            }
+            for (int i = 0; i < intValues.size(); i++) {
+                hrCount += intValues.get(i);
+            }
+            return (hrCount / intValues.size());
+        } else return -1;
+    }
 
     // tento blok kodu kazdych 7 sekund spravi priemer zo ziskanych hodnot zo senzoru a stanovi priemernu hodnotu tepu
     ArrayList<Integer> hrValues = new ArrayList<Integer>();
+
     public static Handler myHandler = new Handler();
-    private static final int TIME_TO_WAIT = 7000;
+    //    private static final int TIME_TO_WAIT = 300000; // 5 minute
+    private static final int TIME_TO_WAIT = 10000; // 5 minute
 
     Runnable myRunnable = new Runnable() {
         @Override
         public void run() {
+
             int hrCount = 0;
             for (int i = 0; i < hrValues.size(); i++) {
                 hrCount += hrValues.get(i);
@@ -535,9 +725,23 @@ public class SleepPlayer extends AppCompatActivity {
 
             heartRate = hrCount / hrValues.size();
 
+            int sleepTreshold = 59;
+
+            int sleepTemp = getUserAverageSleepTreshold();
+            if (sleepTemp != -1) sleepTreshold = sleepTemp;
+
+            if (heartRate < sleepTreshold) {
+                if(currentUser.sleepAverageValues != null) {
+                    currentUser.sleepAverageValues = currentUser.sleepAverageValues + " " + heartRate;
+                } else currentUser.sleepAverageValues = String.valueOf(heartRate);
+                saveUser(currentUser.getUserId());
+                writeTimeStamp();
+            } else {
+                hrValues.clear();
+                restartCountingHR();
+            }
+
             //Log.e("HEARTRATE", "Actual avaregae measurment of Heart Rate is: "+heartRate);
-            hrValues.clear();
-            restartCountingHR();
         }
     };
     // fin
@@ -641,23 +845,21 @@ public class SleepPlayer extends AppCompatActivity {
                 new Consumer<PolarHrBroadcastData>() {
                     @Override
                     public void accept(PolarHrBroadcastData polarBroadcastData) throws Exception {
-
                         player_song_title.setVisibility(View.VISIBLE);
 
                         senzorData = polarBroadcastData.hr;
 
+                        progressBar.setVisibility(View.GONE);
                         heartRateinfo.setText(String.valueOf(senzorData));
 
                         hrValues.add(senzorData);
 
-                        if(senzorData < 65 && !writeFlag) {
-                            writeFlag = true;
-                            writeTimeStamp();
+                        changeSongPosition();
+
+                        if (!runnableFlag[0] && autoSleep) {
+                            startCountingHR(polarBroadcastData.hr);
+                            runnableFlag[0] = true; // when we started average counting, we can disable start of runnable counter
                         }
-
-
-                        if (!runnableFlag[0]) startCountingHR(polarBroadcastData.hr);
-                        runnableFlag[0] = true; // when we started average counting, we can disable start of runnable counter
 
 //                        Log.d(TAG, "HR SenZOR OH1 BROADCAST " +
 //                                polarBroadcastData.polarDeviceInfo.deviceId + " HR: " +
@@ -679,4 +881,9 @@ public class SleepPlayer extends AppCompatActivity {
                 }
         );
     }
+
+    private void resolveSleep() {
+
+    }
+
 }

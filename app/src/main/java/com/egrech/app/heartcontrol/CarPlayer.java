@@ -120,7 +120,7 @@ public class CarPlayer extends AppCompatActivity {
 
     boolean playEnabled = false;
     boolean playWasToutched = false;
-
+    MediaPlayerHolder mMediaPlayerHolder;
     Animation animFadein;
 
     @Override
@@ -257,6 +257,7 @@ public class CarPlayer extends AppCompatActivity {
             if (mPlayerAdapter.isPlaying() || lastFinished) {
                 mPlayerAdapter.reset();
                 mPlayerAdapter.play();
+
             } else mPlayerAdapter.reset();
 
 
@@ -285,6 +286,7 @@ public class CarPlayer extends AppCompatActivity {
             if (mPlayerAdapter.isPlaying()) {
                 mPlayerAdapter.reset();
                 mPlayerAdapter.play();
+
             } else mPlayerAdapter.reset();
         }
     }
@@ -305,8 +307,8 @@ public class CarPlayer extends AppCompatActivity {
         car_player_song_artist = (TextView) findViewById(R.id.car_player_song_artist);
 
 
-        car_player_actual_time = (TextView) findViewById(R.id.car_player_actual_time);
-        car_player_song_duration = (TextView) findViewById(R.id.car_player_song_duration);
+        car_player_actual_time = (TextView) findViewById(R.id.car_actual_time);
+        car_player_song_duration = (TextView) findViewById(R.id.car_total_time);
 
 
         car_player_next_layout = (ConstraintLayout) findViewById(R.id.car_player_next_layout);
@@ -321,8 +323,8 @@ public class CarPlayer extends AppCompatActivity {
 
 
         ImageView mPlayButton = (ImageView) findViewById(R.id.car_player_play_button);
-        mPauseButton = (Button) findViewById(R.id.car_player_button2);
-        mResetButton = (Button) findViewById(R.id.car_player_button3);
+//        mPauseButton = (Button) findViewById(R.id.car_player_button2);
+//        mResetButton = (Button) findViewById(R.id.car_player_button3);
 
         car_play_create_emotion_list = (Button) findViewById(R.id.car_play_create_emotion_list);
         car_play_create_emotion_list.setVisibility(View.GONE);
@@ -392,13 +394,7 @@ public class CarPlayer extends AppCompatActivity {
             }
         });
 
-        mPauseButton.setOnClickListener(
-                new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        mPlayerAdapter.pause();
-                    }
-                });
+
         mPlayButton.setOnClickListener(
                 new View.OnClickListener() {
                     @Override
@@ -414,17 +410,11 @@ public class CarPlayer extends AppCompatActivity {
                         }
                     }
                 });
-        mResetButton.setOnClickListener(
-                new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        mPlayerAdapter.reset();
-                    }
-                });
+
     }
 
     private void initializePlaybackController() {
-        MediaPlayerHolder mMediaPlayerHolder = new MediaPlayerHolder(this);
+        mMediaPlayerHolder = new MediaPlayerHolder(this);
         Log.d(TAG, "initializePlaybackController: created MediaPlayerHolder");
         mMediaPlayerHolder.setPlaybackInfoListener(new PlaybackListener());
         mPlayerAdapter = mMediaPlayerHolder;
@@ -445,7 +435,6 @@ public class CarPlayer extends AppCompatActivity {
                     public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                         if (fromUser) {
                             userSelectedPosition = progress;
-                            car_player_actual_time.setText(String.valueOf(progress));
                         }
                     }
 
@@ -454,7 +443,22 @@ public class CarPlayer extends AppCompatActivity {
                         mUserIsSeeking = false;
                         mPlayerAdapter.seekTo(userSelectedPosition);
                     }
+
                 });
+
+    }
+
+    private void changeSongPosition() {
+        int hours = Math.floorDiv((int) mMediaPlayerHolder.getCurrentPosition(), 3600000);
+        int minutes = Math.floorDiv((int) mMediaPlayerHolder.getCurrentPosition() % 3600000, 60000);
+        int secondes = (int) ((mMediaPlayerHolder.getCurrentPosition() % 36000000) % 60000) / 1000;
+        if (hours != 0){
+            if (secondes < 10) {
+                car_player_actual_time.setText(String.valueOf(hours + ":0" +minutes+ ":0" + secondes));
+            } else car_player_actual_time.setText(String.valueOf(hours + ":0" +minutes+ ":0" + secondes));
+        } else if (secondes < 10) {
+            car_player_actual_time.setText(String.valueOf(minutes+ ":0" + secondes));
+        } else car_player_actual_time.setText(String.valueOf(minutes+ ":" + secondes));
     }
 
     public class PlaybackListener extends PlaybackInfoListener {
@@ -462,6 +466,19 @@ public class CarPlayer extends AppCompatActivity {
         @Override
         public void onDurationChanged(int duration) {
             mSeekbarAudio.setMax(duration);
+
+            int hours = Math.floorDiv((int) mMediaPlayerHolder.getSongDuration(), 3600000);
+            int minutes = Math.floorDiv((int) mMediaPlayerHolder.getSongDuration() % 3600000, 60000);
+            int secondes = (int) ((mMediaPlayerHolder.getSongDuration() % 36000000) % 60000) / 1000;
+
+            if (hours != 0){
+                if (secondes < 10) {
+                    car_player_song_duration.setText(String.valueOf(hours + ":0" +minutes+ ":0" + secondes));
+                } else car_player_song_duration.setText(String.valueOf(hours + ":0" +minutes+ ":0" + secondes));
+            } else if (secondes < 10) {
+                car_player_song_duration.setText(String.valueOf(minutes+ ":0" + secondes));
+            } else car_player_song_duration.setText(String.valueOf(minutes+ ":" + secondes));
+
             Log.d(TAG, String.format("setPlaybackDuration: setMax(%d)", duration));
         }
 
@@ -472,6 +489,24 @@ public class CarPlayer extends AppCompatActivity {
                 Log.d(TAG, String.format("setPlaybackPosition: setProgress(%d)", position));
             }
         }
+
+
+//        @Override
+//        public void onPositionChanged(int position) {
+//            if (!mUserIsSeeking) {
+//                Log.d("PlayBaCKPOSITION", String.valueOf(position));
+//
+//                int hours = Math.floorDiv((int) position, 3600000);
+//                int minutes = Math.floorDiv((int) position % 3600000, 60000);
+//                int secondes = (int) ((position % 36000000) % 60000) / 1000;
+//
+//                car_player_actual_time.setText(String.valueOf(position));
+//
+//                mSeekbarAudio.setProgress(position, true);
+//                Log.d(TAG, String.format("setPlaybackPosition: setProgress(%d)", position));
+//            }
+//        }
+
 
         @Override
         public void onStateChanged(@State int state) {
@@ -873,7 +908,7 @@ public class CarPlayer extends AppCompatActivity {
                         senzorData = polarBroadcastData.hr;
                         hrValues.add(senzorData);
 
-
+                        changeSongPosition();
                         if (!runnableFlag[0]) startCountingHR(polarBroadcastData.hr);
                         runnableFlag[0] = true; // when we started average counting, we can disable start of runnable counter
 

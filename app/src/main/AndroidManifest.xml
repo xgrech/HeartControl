@@ -12,8 +12,7 @@
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
         <activity android:name=".CarPlayer"></activity>
-        <activity android:name=".SleepPlayer"
-            android:theme="@style/DarkTheme">
+        <activity android:name=".SleepPlayer">
         </activity>
         <activity android:name=".SportPlayer" />
         <activity android:name=".SetNewUser" />

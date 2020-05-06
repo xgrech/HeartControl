@@ -1,5 +1,7 @@
 package com.egrech.app.heartcontrol;
 
+import java.util.ArrayList;
+
 public class User {
 
     String userName;
@@ -20,12 +22,21 @@ public class User {
     String sporting;
 
     int averageHeartRate;
+    String sleepAverageValues;
 
     public User(String userId) {
         this.userId = userId;
     }
 
     public User() {
+    }
+
+    public String getSleepAverageValues() {
+        return sleepAverageValues;
+    }
+
+    public void setSleepAverageValues(String sleepAverageValues) {
+        this.sleepAverageValues = sleepAverageValues;
     }
 
     public int getAverageHeartRate() {

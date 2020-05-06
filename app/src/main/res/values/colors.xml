@@ -15,5 +15,6 @@
     <color name="gray_transparent">#57423E3E</color>
     <color name="default_background">#FAFAFA</color>
     <color name="naice_blue_back">#42a5f5</color>
-
+    <color name="darkColor">#FF212121</color>
+    <color name="angryDelfin">#03DAC6</color>
 </resources>

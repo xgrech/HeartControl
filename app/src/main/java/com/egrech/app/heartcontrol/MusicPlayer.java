@@ -24,6 +24,7 @@ import android.database.Cursor;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ListView;
@@ -61,6 +62,10 @@ public class MusicPlayer extends AppCompatActivity implements MediaPlayerControl
     TextView pickSongInfo; // simple text to pick a song in music player
 
     View lastSongView;
+    int lastPickedPosition = 0;
+
+    int topSongViewPosition = 0;
+    int bottomSongViewPosition = 7;
 
     private boolean paused = false, playbackPaused = false;
 
@@ -154,6 +159,13 @@ public class MusicPlayer extends AppCompatActivity implements MediaPlayerControl
         }
     }
 
+    public int getSongPosition() {
+        int i = 0;
+        for (i = 0; i < songList.size(); i++) {
+            if(musicSrv.getCurrentSong().getTitle().equals(songList.get(i).getTitle())) return i;
+        }
+        return i;
+    }
 
     private void playNext() {
         musicSrv.playNext();
@@ -165,6 +177,22 @@ public class MusicPlayer extends AppCompatActivity implements MediaPlayerControl
 
         currentSongTitle.setText(musicSrv.getCurrentSong().getTitle());
         currentSongArtist.setText(musicSrv.getCurrentSong().getArtist());
+
+
+
+        View actualSongView = getViewByPosition(getSongPosition(),songView);
+        actualSongView.setBackgroundColor(getApplicationContext().getResources().getColor(R.color.gray_transparent));
+
+        if (lastSongView != null) {
+            lastSongView.setBackgroundColor(getApplicationContext().getResources().getColor(R.color.default_background));
+        }
+        lastSongView = actualSongView;
+
+
+        if (getSongPosition() > bottomSongViewPosition) {
+            bottomSongViewPosition += 1;
+            songView.smoothScrollToPosition(bottomSongViewPosition);
+        }
     }
 
     private void playPrev() {
@@ -177,6 +205,33 @@ public class MusicPlayer extends AppCompatActivity implements MediaPlayerControl
 
         currentSongTitle.setText(musicSrv.getCurrentSong().getTitle());
         currentSongArtist.setText(musicSrv.getCurrentSong().getArtist());
+
+
+        View actualSongView = getViewByPosition(getSongPosition(),songView);
+        actualSongView.setBackgroundColor(getApplicationContext().getResources().getColor(R.color.gray_transparent));
+
+        if (lastSongView != null) {
+            lastSongView.setBackgroundColor(getApplicationContext().getResources().getColor(R.color.default_background));
+        }
+        lastSongView = actualSongView;
+
+
+//        if (getSongPosition() < topSongViewPosition) {
+//            topSongViewPosition -= 1;
+//            songView.smoothScrollToPosition(topSongViewPosition);
+//        }
+    }
+
+    public View getViewByPosition(int pos, ListView listView) {
+        final int firstListItemPosition = listView.getFirstVisiblePosition();
+        final int lastListItemPosition = firstListItemPosition + listView.getChildCount() - 1;
+
+        if (pos < firstListItemPosition || pos > lastListItemPosition ) {
+            return listView.getAdapter().getView(pos, null, listView);
+        } else {
+            final int childIndex = pos - firstListItemPosition;
+            return listView.getChildAt(childIndex);
+        }
     }
 
 

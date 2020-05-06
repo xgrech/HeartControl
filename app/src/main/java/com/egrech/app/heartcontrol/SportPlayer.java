@@ -119,6 +119,7 @@ public class SportPlayer extends AppCompatActivity {
     private Animation animFadein;
     private NumberPicker hrPicker;
 
+    MediaPlayerHolder mMediaPlayerHolder;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -304,8 +305,8 @@ public class SportPlayer extends AppCompatActivity {
         player_song_artist = (TextView) findViewById(R.id.sport_player_song_artist);
 
 
-//        player_actual_time = (TextView) findViewById(R.id.car_player_actual_time);
-//        player_song_duration = (TextView) findViewById(R.id.car_player_song_duration);
+        player_actual_time = (TextView) findViewById(R.id.sport_actual_song_time);
+        player_song_duration = (TextView) findViewById(R.id.sport_song_duration);
 
 
 //        player_next_layout = (ConstraintLayout) findViewById(R.id.car_player_next_layout);
@@ -408,7 +409,7 @@ public class SportPlayer extends AppCompatActivity {
     }
 
     private void initializePlaybackController() {
-        MediaPlayerHolder mMediaPlayerHolder = new MediaPlayerHolder(this);
+        mMediaPlayerHolder = new MediaPlayerHolder(this);
         Log.d(TAG, "initializePlaybackController: created MediaPlayerHolder");
         mMediaPlayerHolder.setPlaybackInfoListener(new SportPlayer.PlaybackListener());
         mPlayerAdapter = mMediaPlayerHolder;
@@ -441,11 +442,40 @@ public class SportPlayer extends AppCompatActivity {
                 });
     }
 
+    private void changeSongPosition() {
+        int hours = Math.floorDiv((int) mMediaPlayerHolder.getCurrentPosition(), 3600000);
+        int minutes = Math.floorDiv((int) mMediaPlayerHolder.getCurrentPosition() % 3600000, 60000);
+        int secondes = (int) ((mMediaPlayerHolder.getCurrentPosition() % 36000000) % 60000) / 1000;
+        if (hours != 0){
+            if (secondes < 10) {
+                player_actual_time.setText(String.valueOf(hours + ":0" +minutes+ ":0" + secondes));
+            } else player_actual_time.setText(String.valueOf(hours + ":0" +minutes+ ":0" + secondes));
+        } else if (secondes < 10) {
+            player_actual_time.setText(String.valueOf(minutes+ ":0" + secondes));
+        } else player_actual_time.setText(String.valueOf(minutes+ ":" + secondes));
+    }
+
+
     public class PlaybackListener extends PlaybackInfoListener {
 
         @Override
         public void onDurationChanged(int duration) {
             mSeekbarAudio.setMax(duration);
+
+            int hours = Math.floorDiv((int) mMediaPlayerHolder.getSongDuration(), 3600000);
+            int minutes = Math.floorDiv((int) mMediaPlayerHolder.getSongDuration() % 3600000, 60000);
+            int secondes = (int) ((mMediaPlayerHolder.getSongDuration() % 36000000) % 60000) / 1000;
+
+            if (hours != 0){
+                if (secondes < 10) {
+                    player_song_duration.setText(String.valueOf(hours + ":0" +minutes+ ":0" + secondes));
+                } else player_song_duration.setText(String.valueOf(hours + ":0" +minutes+ ":0" + secondes));
+            } else if (secondes < 10) {
+                player_song_duration.setText(String.valueOf(minutes+ ":0" + secondes));
+            } else player_song_duration.setText(String.valueOf(minutes+ ":" + secondes));
+
+
+
             Log.d(TAG, String.format("setPlaybackDuration: setMax(%d)", duration));
         }
 
@@ -818,7 +848,7 @@ public class SportPlayer extends AppCompatActivity {
                         heartRateinfo.setText(String.valueOf(senzorData));
 
                         hrValues.add(senzorData);
-
+                        changeSongPosition();
 
                         if (!runnableFlag[0]) startCountingHR(polarBroadcastData.hr);
                         runnableFlag[0] = true; // when we started average counting, we can disable start of runnable counter

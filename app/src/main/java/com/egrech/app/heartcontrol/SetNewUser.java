@@ -29,7 +29,7 @@ public class SetNewUser extends AppCompatActivity {
     TextView question;
     Spinner gender_spinner, sport_spinner, smoking_spinner, work_spinner, patology_spinner;
     EditText age;
-
+    User newUser;
     int question_counter = 0;
 
     private FirebaseAuth mAuth;
@@ -44,7 +44,7 @@ public class SetNewUser extends AppCompatActivity {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
 
         assert user != null;
-        User newUser = new User(String.valueOf(user.getUid()));
+        newUser = new User(String.valueOf(user.getUid()));
         newUser.userName = user.getDisplayName();
 
         question = (TextView) findViewById(R.id.set_up_question);
@@ -230,6 +230,71 @@ public class SetNewUser extends AppCompatActivity {
         }
         return 0;
     }
+
+//    private void getAverageHR () {
+//        int averageHR = 90;
+//        if(newUser.sporting == "PROFISPORTING") {
+//            if(newUser.patology == 1){
+//                if(newUser.smoker == 1) {
+//                    averageHR = 65;
+//                } else {
+//                    averageHR = 60;
+//                }
+//            } else {
+//                if(newUser.smoker != 1) {
+//                    averageHR = 65;
+//                } else {
+//                    averageHR = 70;
+//                }
+//            }
+//        } else if(newUser.sporting == "SPORTING") {
+//            if(newUser.patology == 1){
+//                if(newUser.smoker != 1) {
+//                    averageHR = 70;
+//                } else {
+//                    averageHR = 75;
+//                }
+//            } else {
+//                if(newUser.smoker != 1) {
+//                    averageHR = 75;
+//                } else {
+//                    averageHR = 80;
+//                }
+//            }
+//        } else if(newUser.sporting == "NOSPORT") {
+//            if(newUser.workingActivity == 1){
+//                if(newUser.patology != 1){
+//                    if(newUser.smoker != 1) {
+//                        averageHR = 70;
+//                    } else {
+//                        averageHR = 75;
+//                    }
+//                }else {
+//                    if(newUser.smoker != 1) {
+//                        averageHR = 80;
+//                    } else {
+//                        averageHR = 85;
+//                    }
+//                }
+//            } else {
+//                if(newUser.patology == 1){
+//                    if(newUser.smoker != 1) {
+//                        averageHR = 85;
+//                    } else {
+//                        averageHR = 90;
+//                    }
+//                }else {
+//                    if(newUser.smoker != 1) {
+//                        averageHR = 90;
+//                    } else {
+//                        averageHR = 95;
+//                    }
+//                }
+//            }
+//
+//
+//        }
+//    }
 
     private void saveUser(User newUser, String userId) {
         FirebaseDatabase database = FirebaseDatabase.getInstance();
