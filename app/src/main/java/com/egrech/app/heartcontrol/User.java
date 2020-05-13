@@ -22,13 +22,22 @@ public class User {
     String sporting;
 
     int averageHeartRate;
-    String sleepAverageValues;
+    String sleepAverageValues;      // String obsahujuci priemerne hodnoty spanku z analyzatora spanku - ulozene v stringu pre obmedzenia "nosql realtime firebase" databazy
+    String testAverageHRValues;     // String obsahujuci priemerne hodnoty telesneho tepu zo ziskanych testovacich merani vyvolanych pouzivatelom
 
     public User(String userId) {
         this.userId = userId;
     }
 
     public User() {
+    }
+
+    public String getTestAverageHRValues() {
+        return testAverageHRValues;
+    }
+
+    public void setTestAverageHRValues(String testAverageHRValues) {
+        this.testAverageHRValues = testAverageHRValues;
     }
 
     public String getSleepAverageValues() {

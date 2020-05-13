@@ -100,5 +100,8 @@
         <item>Decreasing</item>
     </string-array>
 
-
+    <string name="short_test_info">Tento test trvá 3 minúty počas ktorých musíte zostať v úplnom pokoji.
+        Pre nameranie správnych hodnôt sa prosím usaďte, zaujmite pohodlnú pozíciu a počas trvania testu nevykonávajte źiadnu aktivitu</string>
+    <string name="long_test_info">Dlhý test trvá 5 minút. Počas tohto času musíte zostať v úplnom pokoji.
+        Dlhšie meranie zarućí presnejší výsledok. Pred testom sa prosím usaďte, zaujmite pohodlnú pozíciu a počas trvania testu nevykonávajte źiadnu aktivitu</string>
 </resources>

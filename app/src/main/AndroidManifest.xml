@@ -11,9 +11,9 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
-        <activity android:name=".CarPlayer"></activity>
-        <activity android:name=".SleepPlayer">
-        </activity>
+        <activity android:name=".HeartRateTest"></activity>
+        <activity android:name=".CarPlayer" />
+        <activity android:name=".SleepPlayer"></activity>
         <activity android:name=".SportPlayer" />
         <activity android:name=".SetNewUser" />
         <activity android:name=".Menu" />

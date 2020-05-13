@@ -173,7 +173,7 @@
         app:layout_constraintTop_toBottomOf="@+id/textView9" />
 
     <ImageView
-        android:id="@+id/user_profile_average"
+        android:id="@+id/profile_average_hr_heart_icon"
         android:layout_width="72dp"
         android:layout_height="65dp"
         android:layout_marginTop="208dp"
@@ -196,7 +196,7 @@
         app:layout_constraintTop_toBottomOf="@+id/user_profile_average" />
 
     <TextView
-        android:id="@+id/textView12"
+        android:id="@+id/profile_average_hr_text"
         android:layout_width="28dp"
         android:layout_height="18dp"
         android:layout_marginStart="60dp"

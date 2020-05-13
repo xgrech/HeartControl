@@ -1,10 +1,6 @@
 package com.egrech.app.heartcontrol;
-
 import android.content.Intent;
 import android.os.Bundle;
-
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
@@ -12,10 +8,7 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
-
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
-
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -24,6 +17,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.TextView;
 
@@ -38,11 +32,19 @@ public class UserProfile extends AppCompatActivity {
     private FirebaseDatabase mFirebaseDatabaseInstance;
     private DatabaseReference mFirebaseDatabase;
 
+    private ImageView averageHRIcon;
+    private TextView averageHRText;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_user_profile);
 
+        initializeUI();         //inicializuj User Interface
+        getCurrentUser();       //stiahni data aktualneho usera z databazy
+        setUpListeners();       //nastav listeneri na zmenu spinnerov
+    }
+    void initializeUI() {
         // nastav layout views
 
         gender_spinner = (Spinner) findViewById(R.id.profileGender);
@@ -55,9 +57,25 @@ public class UserProfile extends AppCompatActivity {
 
         age = (EditText) findViewById(R.id.profileAge);
         name = (EditText) findViewById(R.id.profileName);
+        averageHRIcon = (ImageView) findViewById(R.id.profile_average_hr_heart_icon);
+        averageHRText = (TextView) findViewById(R.id.profile_average_hr_text);
 
-        getCurrentUser();      //stiahni data aktualneho usera z databazy
-        setUpListeners(); //nastav listeneri na zmenu spinnerov
+
+        averageHRIcon.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(getApplicationContext(), HeartRateTest.class);
+                startActivity(intent);
+            }
+        });
+
+        averageHRText.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(getApplicationContext(), HeartRateTest.class);
+                startActivity(intent);
+            }
+        });
 
         save_data.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -67,6 +85,7 @@ public class UserProfile extends AppCompatActivity {
             }
         });
     }
+
     void getCurrentUser() {
         FirebaseDatabase database = FirebaseDatabase.getInstance();
         DatabaseReference dbUsersRef = database.getReference("users");
@@ -82,7 +101,11 @@ public class UserProfile extends AppCompatActivity {
 
                 Log.d("GetUser", "Value is: " + value);
                 currentUser = value;
-                setViews(value);
+
+                if(value != null) {
+                    averageHRText.setText(String.valueOf(value.averageHeartRate));
+                    setViews(value);
+                }
             }
 
             @Override

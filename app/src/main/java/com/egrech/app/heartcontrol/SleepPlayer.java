@@ -711,8 +711,8 @@ public class SleepPlayer extends AppCompatActivity {
     ArrayList<Integer> hrValues = new ArrayList<Integer>();
 
     public static Handler myHandler = new Handler();
-    //    private static final int TIME_TO_WAIT = 300000; // 5 minute
-    private static final int TIME_TO_WAIT = 10000; // 5 minute
+        private static final int TIME_TO_WAIT = 300000; // 5 minute
+//    private static final int TIME_TO_WAIT = 10000; // 5 minute
 
     Runnable myRunnable = new Runnable() {
         @Override
@@ -725,7 +725,7 @@ public class SleepPlayer extends AppCompatActivity {
 
             heartRate = hrCount / hrValues.size();
 
-            int sleepTreshold = 59;
+            int sleepTreshold = 60;
 
             int sleepTemp = getUserAverageSleepTreshold();
             if (sleepTemp != -1) sleepTreshold = sleepTemp;

@@ -34,8 +34,8 @@ public class Launcher extends AppCompatActivity {
             @Override
             public void run() {
 //                Intent intent = new Intent(getApplicationContext(), Menu.class);
-//                Intent intent = new Intent(getApplicationContext(), SleepPlayer.class);
-                Intent intent = new Intent(getApplicationContext(), Login.class);
+                Intent intent = new Intent(getApplicationContext(), HeartRateTest.class);
+//                Intent intent = new Intent(getApplicationContext(), Login.class);
                 startActivity(intent);
             }
         }, 1800);//time in milisecond

@@ -40,6 +40,14 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+
 import org.apache.commons.lang3.ObjectUtils;
 
 import java.io.BufferedReader;
@@ -72,7 +80,7 @@ public class CarPlayer extends AppCompatActivity {
 
     private ProgressBar progressBar;
 
-    int averageHeartRat = 90; // todo doriesit analyzator priemerneho tepu
+    int averageHeartRate; // todo doriesit analyzator priemerneho tepu
 
     int heartRate;
     int senzorData = 0;
@@ -123,6 +131,8 @@ public class CarPlayer extends AppCompatActivity {
     MediaPlayerHolder mMediaPlayerHolder;
     Animation animFadein;
 
+    private User currentUser;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -155,6 +165,7 @@ public class CarPlayer extends AppCompatActivity {
         songList = new ArrayList<Song>();
 
         getSongList();
+        getCurrentUser();
 
         initializeUI();
         initializeSeekbar();
@@ -546,7 +557,7 @@ public class CarPlayer extends AppCompatActivity {
 
         int temp = 0;
 
-        if (heartRate < averageHeartRat - 5) {
+        if (heartRate < averageHeartRate - 5) {
             while (!songList.get(newSongPosition).getEmotionStatus().equals("R")) {
                 if (temp == songList.size()) {
                     nextSong = songPosition;
@@ -557,7 +568,7 @@ public class CarPlayer extends AppCompatActivity {
                 } else newSongPosition = 0;
             }
         } else {
-            if (heartRate > averageHeartRat + 5) {
+            if (heartRate > averageHeartRate + 5) {
                 while (!songList.get(newSongPosition).getEmotionStatus().equals("D")) {
                     if (temp == songList.size()) {
                         nextSong = songPosition;
@@ -595,7 +606,7 @@ public class CarPlayer extends AppCompatActivity {
 
         int temp = 0;
 //            Log.e("SearchingSong", "Telesny tep je " + String.valueOf(heartRate));
-        if (heartRate < averageHeartRat - 5) {
+        if (heartRate < averageHeartRate - 5) {
             Log.e("SearchingSong", "Cheme zvacsovat ");
 
             while (!songList.get(newSongPosition).getEmotionStatus().equals("R")) {
@@ -626,7 +637,7 @@ public class CarPlayer extends AppCompatActivity {
                 } else newSongPosition = 0;
             }
         } else {
-            if (heartRate > averageHeartRat + 5) {
+            if (heartRate > averageHeartRate + 5) {
                 Log.e("SearchingSong", "Cheme zmensovat ");
 //                    Log.e("SearchingSong", String.valueOf(songList.get(newSongPosition).getEmotionStatus().equals("D")));
 //                    Log.e("SearchingSong", String.valueOf(songList.get(newSongPosition).getEmotionStatus()));
@@ -715,6 +726,35 @@ public class CarPlayer extends AppCompatActivity {
     }
 
 
+    void getCurrentUser() {
+        FirebaseDatabase database = FirebaseDatabase.getInstance();
+        DatabaseReference dbUsersRef = database.getReference("users");
+
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+
+        dbUsersRef.child(user.getUid()).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                // This method is called once with the initial value and again
+                // whenever data at this location is updated.
+                User value = dataSnapshot.getValue(User.class);
+
+                Log.d("GetUser", "Value is: " + value);
+                currentUser = value;
+
+                if(value != null) {
+                    averageHeartRate = value.averageHeartRate;
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError error) {
+                // Failed to read value
+                Log.d("LoginUserCheck", "Didnt catch data of user");
+            }
+        });
+    }
+
     private void createEmotionList() {
         car_play_create_emotion_list.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -765,7 +805,6 @@ public class CarPlayer extends AppCompatActivity {
             }
 
             heartRate = hrCount / hrValues.size();
-
 
             heartRateinfo.startAnimation(animFadein);
             heartRateinfo.setText(String.valueOf(heartRate));
