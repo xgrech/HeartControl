@@ -72,7 +72,7 @@ public class SportPlayer extends AppCompatActivity {
 
     private ProgressBar progressBar;
 
-    int averageHeartRat = 90; // todo doriesit analyzator priemerneho tepu
+    int averageHeartRat = 90;
 
     int heartRate;
     int senzorData = 0;
@@ -115,7 +115,7 @@ public class SportPlayer extends AppCompatActivity {
     private ArrayList<Integer> playedSongs;
 
     boolean playEnabled = false;
-    boolean playWasToutched = false; // todo
+    boolean playWasToutched = false;
 
     private Animation animFadein;
     private NumberPicker hrPicker;

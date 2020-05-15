@@ -10,11 +10,11 @@
         android:id="@+id/set_up_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="36dp"
         android:layout_marginTop="28dp"
-        android:text="Please set up your profile"
+        android:text="Nastavenie profilu"
         android:textColor="#000000"
         android:textSize="30sp"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -23,12 +23,13 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="Answer few question for setting up your profile preferences:"
+        android:text="Pre nastavenie profilu odpovedzte prosím na pár otázok:"
         android:textAlignment="center"
         android:textColor="#090808"
         android:textSize="24sp"
-        app:layout_constraintTop_toBottomOf="@+id/set_up_title_image"
-        tools:layout_editor_absoluteX="0dp" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/set_up_title_image" />
 
     <ImageView
         android:id="@+id/set_up_title_image"
@@ -47,10 +48,8 @@
         android:id="@+id/set_up_question"
         android:layout_width="396dp"
         android:layout_height="37dp"
-        android:layout_marginStart="176dp"
         android:layout_marginTop="32dp"
-        android:layout_marginEnd="176dp"
-        android:text="Are you ready?"
+        android:text="Ste pripravený?"
         android:textAlignment="center"
         android:textSize="24sp"
         android:textStyle="italic"
@@ -63,13 +62,10 @@
         style="@style/Widget.AppCompat.Button.ButtonBar.AlertDialog"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="166dp"
         android:layout_marginTop="284dp"
-        android:layout_marginEnd="157dp"
         android:text="Ready?"
         android:textColor="#C33406"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/set_up_question" />
 
@@ -138,9 +134,7 @@
         style="@android:style/Widget.Material.Spinner"
         android:layout_width="260dp"
         android:layout_height="36dp"
-        android:layout_marginStart="1dp"
         android:layout_marginTop="228dp"
-        android:layout_marginEnd="1dp"
         android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.495"

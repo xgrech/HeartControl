@@ -45,7 +45,7 @@ public class PolarConnection extends AppCompatActivity {
     Disposable ppgDisposable;
     Disposable ppiDisposable;
     Disposable scanDisposable;
-    String DEVICE_ID = "218DDA23"; // or bt address like F5:A7:B8:EF:7A:D1 // TODO replace with your device id
+    String DEVICE_ID = "218DDA23"; // or bt address like F5:A7:B8:EF:7A:D1 //
     Disposable autoConnectDisposable;
     PolarExerciseEntry exerciseEntry;
 

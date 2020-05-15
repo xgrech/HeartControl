@@ -51,7 +51,7 @@ public class Menu extends AppCompatActivity {
     private static final int RESULT_CANCELED = 357;
     private static final int REQUEST_ENABLE_GPS = 3358;
 
-    String DEVICE_ID = ""; // or bt address like F5:A7:B8:EF:7A:D1 // TODO replace with your device id
+    String DEVICE_ID = "";
     int heartRate;
     PolarBleApi api;
     Disposable scanDisposable;
