@@ -211,9 +211,9 @@ public class SongAdapter extends BaseAdapter {
                 String line;
 
                 while ((line = file.readLine()) != null) {
-                    Log.e("CompareLines", line.split(" ")[0] + " is compered to " + String.valueOf(currSong.getID()));
+//                    Log.e("CompareLines", line.split(" ")[0] + " is compered to " + String.valueOf(currSong.getID()));
                     if (line.split(" ")[0].equals(String.valueOf(currSong.getID()))) {
-                        Log.e("LINECHANGE", "Changing line " + line + " for new one: " + String.valueOf(currSong.getID() + emotionToken));
+//                        Log.e("LINECHANGE", "Changing line " + line + " for new one: " + String.valueOf(currSong.getID() + emotionToken));
 
                         // pokial nenastavujeme rezim ze nie je nic vybrate tak mozeme nastavit nove pravidlo v subore
                         if(!emotionToken.equals("delete")) {

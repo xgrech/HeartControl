@@ -231,74 +231,79 @@ public class SetNewUser extends AppCompatActivity {
         return 0;
     }
 
-//    private void getAverageHR () {
-//        int averageHR = 90;
-//        if(newUser.sporting == "PROFISPORTING") {
-//            if(newUser.patology == 1){
-//                if(newUser.smoker == 1) {
-//                    averageHR = 65;
-//                } else {
-//                    averageHR = 60;
-//                }
-//            } else {
-//                if(newUser.smoker != 1) {
-//                    averageHR = 65;
-//                } else {
-//                    averageHR = 70;
-//                }
-//            }
-//        } else if(newUser.sporting == "SPORTING") {
-//            if(newUser.patology == 1){
-//                if(newUser.smoker != 1) {
-//                    averageHR = 70;
-//                } else {
-//                    averageHR = 75;
-//                }
-//            } else {
-//                if(newUser.smoker != 1) {
-//                    averageHR = 75;
-//                } else {
-//                    averageHR = 80;
-//                }
-//            }
-//        } else if(newUser.sporting == "NOSPORT") {
-//            if(newUser.workingActivity == 1){
-//                if(newUser.patology != 1){
-//                    if(newUser.smoker != 1) {
-//                        averageHR = 70;
-//                    } else {
-//                        averageHR = 75;
-//                    }
-//                }else {
-//                    if(newUser.smoker != 1) {
-//                        averageHR = 80;
-//                    } else {
-//                        averageHR = 85;
-//                    }
-//                }
-//            } else {
-//                if(newUser.patology == 1){
-//                    if(newUser.smoker != 1) {
-//                        averageHR = 85;
-//                    } else {
-//                        averageHR = 90;
-//                    }
-//                }else {
-//                    if(newUser.smoker != 1) {
-//                        averageHR = 90;
-//                    } else {
-//                        averageHR = 95;
-//                    }
-//                }
-//            }
-//
-//
-//        }
-//    }
+    private void setAverageHRfromProfile () {
+        switch (newUser.sporting) {
+            case "PROFISPORTING":
+                if (newUser.patology != 1) {
+                    if (newUser.smoker != 1) {
+                        newUser.averageHeartRate = 55;
+                    } else {
+                        newUser.averageHeartRate = 65;
+                    }
+                } else {
+                    if (newUser.smoker != 1) {
+                        newUser.averageHeartRate = 65;
+                    } else {
+                        newUser.averageHeartRate = 70;
+                    }
+                }
+                break;
+            case "SPORTING":
+                if (newUser.patology != 1) {
+                    if (newUser.smoker != 1) {
+                        newUser.averageHeartRate = 70;
+                    } else {
+                        newUser.averageHeartRate = 80;
+                    }
+                } else {
+                    if (newUser.smoker != 1) {
+                        newUser.averageHeartRate = 80;
+                    } else {
+                        newUser.averageHeartRate = 85;
+                    }
+                }
+                break;
+            case "NOSPORT":
+                if (newUser.workingActivity == 1) {
+                    if (newUser.patology != 1) {
+                        if (newUser.smoker != 1) {
+                            newUser.averageHeartRate = 70;
+                        } else {
+                            newUser.averageHeartRate = 75;
+                        }
+                    } else {
+                        if (newUser.smoker != 1) {
+                            newUser.averageHeartRate = 75;
+                        } else {
+                            newUser.averageHeartRate = 80;
+                        }
+                    }
+                } else {
+                    if (newUser.patology != 1) {
+                        if (newUser.smoker != 1) {
+                            newUser.averageHeartRate = 85;
+                        } else {
+                            newUser.averageHeartRate = 90;
+                        }
+                    } else {
+                        if (newUser.smoker != 1) {
+                            newUser.averageHeartRate = 90;
+                        } else {
+                            newUser.averageHeartRate = 95;
+                        }
+                    }
+                }
+                break;
+        }
+        if(newUser.gender == 1) newUser.averageHeartRate += 5;
+    }
 
     private void saveUser(User newUser, String userId) {
         FirebaseDatabase database = FirebaseDatabase.getInstance();
         DatabaseReference dbUsersRef = database.getReference("users");
+
+        setAverageHRfromProfile();
+        newUser.testAverageHRValues = String.valueOf(newUser.averageHeartRate);
 
         dbUsersRef.child(String.valueOf(userId)).setValue(newUser);
     }

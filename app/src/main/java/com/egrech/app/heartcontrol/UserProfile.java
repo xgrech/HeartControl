@@ -43,7 +43,16 @@ public class UserProfile extends AppCompatActivity {
         initializeUI();         //inicializuj User Interface
         getCurrentUser();       //stiahni data aktualneho usera z databazy
         setUpListeners();       //nastav listeneri na zmenu spinnerov
+
     }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        getCurrentUser();
+        setUpListeners();
+    }
+
     void initializeUI() {
         // nastav layout views
 

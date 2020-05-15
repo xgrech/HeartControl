@@ -21,23 +21,23 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.144"
-        app:srcCompat="@drawable/tender" />
+        app:srcCompat="@drawable/heart" />
 
     <ImageView
         android:id="@+id/heart_view"
-        android:layout_width="203dp"
-        android:layout_height="84dp"
+        android:layout_width="304dp"
+        android:layout_height="92dp"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="8dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.83"
+        app:layout_constraintHorizontal_bias="0.692"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.308"
-        app:srcCompat="@drawable/heart" />
+        app:layout_constraintVertical_bias="0.335"
+        app:srcCompat="@drawable/control" />
 
     <ImageView
         android:id="@+id/heart_icon_view"

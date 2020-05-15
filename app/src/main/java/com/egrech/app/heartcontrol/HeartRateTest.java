@@ -18,6 +18,7 @@ import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -42,10 +43,15 @@ public class HeartRateTest extends AppCompatActivity {
     private Button hrShortTestButton;
     private Button hrLongTestButton;
 
+    private Button cancelResetButton;
+
     private ImageView hrTestImage;
     private TextView calmQuestionText;
     private TextView durationText;
     private TextView testInfo;
+
+    private ImageView resetButton;
+    private TextView resetText;
 
     private Button startButton;
 
@@ -65,11 +71,22 @@ public class HeartRateTest extends AppCompatActivity {
     Disposable scanDisposable;
 
     String DEVICE_ID = "";
-//    String DEVICE_ID = "612F262A";
+    //    String DEVICE_ID = "612F262A";
     int senzorData = -1;
+
+    boolean resetFlag = false;
 
 
     public static final String TAG = "HeartRateTestingScreen";
+
+
+    private ArrayList<Integer> hrValues = new ArrayList<Integer>();
+    private ArrayList<Integer> hrAverageValues = new ArrayList<Integer>();
+
+    private static Handler myHandler = new Handler();
+    private static final int TIME_TO_WAIT = 30000; // 30 sekund interval na ustalenie hodnoty tepu
+
+    private boolean calmWaitFlag = false;
 
 
     @Override
@@ -86,10 +103,24 @@ public class HeartRateTest extends AppCompatActivity {
 //        connectPolarDevice();
     }
 
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event)
+    {
+        if ((keyCode == KeyEvent.KEYCODE_BACK))
+        {
+            if(countDown != null) countDown.cancel();
+            finish();
+        }
+        return super.onKeyDown(keyCode, event);
+    }
+
     private void initializeUI() {
         hrLongTestButton = (Button) findViewById(R.id.hr_test_long_button);
         hrShortTestButton = (Button) findViewById(R.id.hr_test_short_button);
         hrTestTitle = (TextView) findViewById(R.id.hr_test_title);
+
+        resetButton = (ImageView) findViewById(R.id.hr_test_reset_button);
+        resetText = (TextView) findViewById(R.id.hr_test_reset_text);
 
         hrTestImage = (ImageView) findViewById(R.id.hr_test_image);
         hrTestImage.setVisibility(View.GONE);
@@ -110,6 +141,9 @@ public class HeartRateTest extends AppCompatActivity {
         startButton.setVisibility(View.GONE);
 
         testInfo = (TextView) findViewById(R.id.hr_test_test_info);
+
+        cancelResetButton = (Button) findViewById(R.id.hr_test_reset_cancel_button);
+        cancelResetButton.setVisibility(View.GONE);
 
     }
 
@@ -142,6 +176,50 @@ public class HeartRateTest extends AppCompatActivity {
                 startButton.setVisibility(View.VISIBLE);
             }
         });
+
+        resetButton.setOnClickListener(new View.OnClickListener() {
+            @SuppressLint("SetTextI18n")
+            @Override
+            public void onClick(View v) {
+                hrTestTitle.setText("Naozaj chcete zmazať HR dáta?");
+                resetText.setText("Pre potvrdenie kliknite znova");
+                testInfo.setText(getApplicationContext().getResources().getText(R.string.reset_text));
+                resetButton.setImageResource(R.drawable.reset_red);
+
+                hrLongTestButton.setVisibility(View.GONE);
+                hrShortTestButton.setVisibility(View.GONE);
+                startButton.setVisibility(View.GONE);
+
+                cancelResetButton.setVisibility(View.VISIBLE);
+
+
+                // ak je zvoleny reset HR hodnot, premazeme priemerne hodnoty, sleepTreshodl a ulozime uzivatela ako keby sa prave zaregistroval
+                if(resetFlag) {
+                    setAverageHRfromProfile();
+                    currentUser.testAverageHRValues = String.valueOf(currentUser.averageHeartRate);
+                    currentUser.sleepAverageValues = "";
+                    saveUser(currentUser);
+                    finish();
+                }
+                resetFlag = true;
+            }
+        });
+
+        cancelResetButton.setOnClickListener(new View.OnClickListener() {
+            @SuppressLint("SetTextI18n")
+            @Override
+            public void onClick(View v) {
+                hrTestTitle.setText("Vyberte si dĺžku testu");
+                resetText.setText("Reset all HR data");
+
+                testInfo.setText("");
+                resetButton.setImageResource(R.drawable.reset_yellow);
+
+                hrLongTestButton.setVisibility(View.VISIBLE);
+                hrShortTestButton.setVisibility(View.VISIBLE);
+                cancelResetButton.setVisibility(View.GONE);
+            }
+        });
     }
 
     private void startHRMeasurmentTest() {
@@ -149,12 +227,17 @@ public class HeartRateTest extends AppCompatActivity {
         hrTestTitle.setVisibility(View.GONE);
         hrTestImage.setVisibility(View.VISIBLE);
         calmQuestionText.setVisibility(View.VISIBLE);
-        durationText.setVisibility(View.VISIBLE);
         circleSpin.setVisibility(View.VISIBLE);
         hrShortTestButton.setVisibility(View.GONE);
         hrLongTestButton.setVisibility(View.GONE);
 
+        startButton.setVisibility(View.GONE);
+        resetButton.setVisibility(View.GONE);
+        resetText.setVisibility(View.GONE);
+        durationText.setVisibility(View.VISIBLE);
+
         startTimer();
+
     }
 
     void getCurrentUser() {
@@ -182,10 +265,14 @@ public class HeartRateTest extends AppCompatActivity {
         });
     }
 
+    private void saveUser(User currentUser) {
+        FirebaseDatabase database = FirebaseDatabase.getInstance();
+        DatabaseReference dbUsersRef = database.getReference("users");
+        dbUsersRef.child(String.valueOf(currentUser.userId)).setValue(currentUser);
+    }
 
     @SuppressLint("SetTextI18n")
     private void startTimer() {
-        durationText.setVisibility(View.VISIBLE);
 
 
         countDown = new CountDownTimer(durationMS, 1000) {
@@ -205,30 +292,61 @@ public class HeartRateTest extends AppCompatActivity {
 
             @Override
             public void onFinish() {
-//                writeTimeStamp();
+                int hrCount = 0;
+                for (int i = 0; i < hrAverageValues.size(); i++) {
+                    hrCount += hrAverageValues.get(i);
+                }
+//                Log.e(TAG, "hrAverageValues Size " + hrAverageValues.size());
+                int newAverageValue = hrCount / hrAverageValues.size();
+
+                if(currentUser.testAverageHRValues == null)  currentUser.testAverageHRValues = String.valueOf(newAverageValue);
+                else currentUser.testAverageHRValues =  currentUser.testAverageHRValues + " " + newAverageValue;
+
+                currentUser.averageHeartRate = countAverageHeartRate();
+                saveUser(currentUser);
+
+                finish();
             }
         }.start();
     }
 
 
-    // tento blok kodu kazdych 7 sekund spravi priemer zo ziskanych hodnot zo senzoru a stanovi priemernu hodnotu tepu
-    ArrayList<Integer> hrValues = new ArrayList<Integer>();
+    private int countAverageHeartRate() {
+        int hrCount = 0;
 
-    public static Handler myHandler = new Handler();
-    private static final int TIME_TO_WAIT = 7000; //
+        String[] values = new String[]{};
+        if (currentUser.testAverageHRValues != null) {
+            values = currentUser.testAverageHRValues.split(" ");
+            for (String value : values) {
+                hrCount += Integer.parseInt(value);
+            }
+            return (hrCount / values.length);
+        } else return -1;
+    }
+
+    // tento blok kodu kazdych 7 sekund spravi priemer zo ziskanych hodnot zo senzoru a stanovi priemernu hodnotu tepu
+
 
     Runnable myRunnable = new Runnable() {
         @Override
         public void run() {
 
-            int hrCount = 0;
-            for (int i = 0; i < hrValues.size(); i++) {
-                hrCount += hrValues.get(i);
+            if (calmWaitFlag) {
+                int hrCount = 0;
+                for (int i = 0; i < hrValues.size(); i++) {
+                    hrCount += hrValues.get(i);
+                }
+
+                heartRate = hrCount / hrValues.size();
+                hrAverageValues.add(heartRate);
+
+                restartCountingHR(5000);
+            } else {
+                calmWaitFlag = true;
+                restartCountingHR(5000);
             }
 
-            heartRate = hrCount / hrValues.size();
 
-            Log.e(TAG, "" + heartRate);
 //            if (heartRate < sleepTreshold) {
 //                if(currentUser.sleepAverageValues != null) {
 //                    currentUser.sleepAverageValues = currentUser.sleepAverageValues + " " + heartRate;
@@ -253,15 +371,15 @@ public class HeartRateTest extends AppCompatActivity {
         myHandler.removeCallbacks(myRunnable);
     }
 
-    public void restartCountingHR() {
+    public void restartCountingHR(int timeMS) {
         myHandler.removeCallbacks(myRunnable);
-        myHandler.postDelayed(myRunnable, TIME_TO_WAIT);
+        myHandler.postDelayed(myRunnable, timeMS);
     }
 
 
     @SuppressLint("SetTextI18n")
     void scanForDevice() {
-        hrTestTitle.setText("Scanning for device");
+        hrTestTitle.setText("Senzor nie je pripojený. Hľadám...");
         hrShortTestButton.setVisibility(View.GONE);
         hrLongTestButton.setVisibility(View.GONE);
         scanSpin.setVisibility(View.VISIBLE);
@@ -290,7 +408,7 @@ public class HeartRateTest extends AppCompatActivity {
                             String deviceNameMark = String.valueOf(polarDeviceInfo.name).split(" ")[0];
 //                            Log.d(TAG, "Device Mark is: " + deviceNameMark);
 
-                            if(deviceNameMark.equals("Polar")) {
+                            if (deviceNameMark.equals("Polar")) {
                                 DEVICE_ID = polarDeviceInfo.address;
 
                                 scanDisposable.dispose();
@@ -421,10 +539,10 @@ public class HeartRateTest extends AppCompatActivity {
                             runnableFlag[0] = true; // when we started average counting, we can disable start of runnable counter
                         }
 
-                        Log.d(TAG, "HR SenZOR OH1 BROADCAST " +
-                                polarBroadcastData.polarDeviceInfo.deviceId + " HR: " +
-                                polarBroadcastData.hr + " batt: " +
-                                polarBroadcastData.batteryStatus);
+//                        Log.d(TAG, "HR SenZOR OH1 BROADCAST " +
+//                                polarBroadcastData.polarDeviceInfo.deviceId + " HR: " +
+//                                polarBroadcastData.hr + " batt: " +
+//                                polarBroadcastData.batteryStatus);
                     }
                 },
                 new Consumer<Throwable>() {
@@ -442,4 +560,70 @@ public class HeartRateTest extends AppCompatActivity {
         );
     }
 
+    private void setAverageHRfromProfile () {
+        switch (currentUser.sporting) {
+            case "PROFISPORTING":
+                if (currentUser.patology != 1) {
+                    if (currentUser.smoker != 1) {
+                        currentUser.averageHeartRate = 55;
+                    } else {
+                        currentUser.averageHeartRate = 65;
+                    }
+                } else {
+                    if (currentUser.smoker != 1) {
+                        currentUser.averageHeartRate = 65;
+                    } else {
+                        currentUser.averageHeartRate = 70;
+                    }
+                }
+                break;
+            case "SPORTING":
+                if (currentUser.patology != 1) {
+                    if (currentUser.smoker != 1) {
+                        currentUser.averageHeartRate = 70;
+                    } else {
+                        currentUser.averageHeartRate = 80;
+                    }
+                } else {
+                    if (currentUser.smoker != 1) {
+                        currentUser.averageHeartRate = 80;
+                    } else {
+                        currentUser.averageHeartRate = 85;
+                    }
+                }
+                break;
+            case "NOSPORT":
+                if (currentUser.workingActivity == 1) {
+                    if (currentUser.patology != 1) {
+                        if (currentUser.smoker != 1) {
+                            currentUser.averageHeartRate = 70;
+                        } else {
+                            currentUser.averageHeartRate = 75;
+                        }
+                    } else {
+                        if (currentUser.smoker != 1) {
+                            currentUser.averageHeartRate = 75;
+                        } else {
+                            currentUser.averageHeartRate = 80;
+                        }
+                    }
+                } else {
+                    if (currentUser.patology != 1) {
+                        if (currentUser.smoker != 1) {
+                            currentUser.averageHeartRate = 85;
+                        } else {
+                            currentUser.averageHeartRate = 90;
+                        }
+                    } else {
+                        if (currentUser.smoker != 1) {
+                            currentUser.averageHeartRate = 90;
+                        } else {
+                            currentUser.averageHeartRate = 95;
+                        }
+                    }
+                }
+                break;
+        }
+        if(currentUser.gender == 1) currentUser.averageHeartRate += 5;
+    }
 }

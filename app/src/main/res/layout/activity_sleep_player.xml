@@ -44,7 +44,7 @@
             android:layout_marginTop="24dp"
             android:layout_marginEnd="16dp"
             android:shadowColor="#FFFFFF"
-            android:text="Atuo Sleep Mode"
+            android:text="Auto Sleep Mode"
             app:layout_constraintEnd_toStartOf="@+id/sleep_auto_mode_switch"
             app:layout_constraintTop_toTopOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>

@@ -4,6 +4,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Action;
 import io.reactivex.functions.Consumer;
@@ -57,7 +58,7 @@ public class SportPlayer extends AppCompatActivity {
     private static final int RESULT_CANCELED = 357;
     private static final int REQUEST_ENABLE_GPS = 3358;
 
-    String DEVICE_ID = "612F262A"; // or bt address like F5:A7:B8:EF:7A:D1 // TODO replace with your device id
+    String DEVICE_ID = ""; // or bt address like F5:A7:B8:EF:7A:D1 // TODO replace with your device id
 
     PolarBleApi api;
     Disposable broadcastDisposable;
@@ -121,6 +122,10 @@ public class SportPlayer extends AppCompatActivity {
 
     MediaPlayerHolder mMediaPlayerHolder;
 
+    Disposable scanDisposable;
+
+    boolean senzorConnected = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -144,10 +149,7 @@ public class SportPlayer extends AppCompatActivity {
 
         heartRateBackground = (ImageView) findViewById(R.id.sport_player_heart_rate_background);
         heartRateinfo = (TextView) findViewById(R.id.sport_palyer_heart_rate);
-
-
-        // inicializuj pripojenie OH1 senzoru
-        connectPolarDevice();
+        heartRateinfo.setVisibility(View.GONE);
 
 
         songList = new ArrayList<Song>();
@@ -155,6 +157,8 @@ public class SportPlayer extends AppCompatActivity {
         getSongList();
 
         initializeUI();
+        scanForDevice();  // inicializuj pripojenie OH1 senzoru
+
         initializeSeekbar();
         initializePlaybackController();
         Log.d(TAG, "onCreate: finished");
@@ -543,7 +547,6 @@ public class SportPlayer extends AppCompatActivity {
 //                    car_player_back_layout.setBackgroundResource(R.drawable.blue_background_warning);
 //                    car_player_next_layout.setBackgroundResource(R.drawable.blue_background_warning);
 
-                    progressBar.setVisibility(View.GONE);
                     createEmotionList();
 
 
@@ -571,7 +574,6 @@ public class SportPlayer extends AppCompatActivity {
                     if (temp == songList.size()) {
                         playEnabled = false;
 
-                        progressBar.setVisibility(View.GONE);
                         createEmotionList();
                         player_song_title.setText("No Songs in Rising Emotion List"); //todo doriesit presmerovanie na emocny zoznam
                         player_song_artist.setVisibility(View.GONE);
@@ -593,7 +595,6 @@ public class SportPlayer extends AppCompatActivity {
                     if (temp == songList.size()) {
                         playEnabled = false;
 
-                        progressBar.setVisibility(View.GONE);
                         createEmotionList();
 
                         player_song_title.setText("No Songs in Rising Emotion List"); //todo doriesit presmerovanie na emocny zoznam
@@ -686,6 +687,7 @@ public class SportPlayer extends AppCompatActivity {
                 hrCount += hrValues.get(i);
             }
 
+            if(hrValues.size() != 0)
             heartRate = hrCount / hrValues.size();
 
 
@@ -703,7 +705,6 @@ public class SportPlayer extends AppCompatActivity {
                     songPosition = nextSong;
                     playedSongs.add(songPosition);
 
-                    progressBar.setVisibility(View.GONE);
 //                    player_actual_time.setVisibility(View.VISIBLE);
 //                    player_song_duration.setVisibility(View.VISIBLE);
 
@@ -719,7 +720,13 @@ public class SportPlayer extends AppCompatActivity {
 
             //Log.e("HEARTRATE", "Actual avaregae measurment of Heart Rate is: "+heartRate);
             hrValues.clear();
-            restartCountingHR();
+            if(senzorConnected) {
+                restartCountingHR();
+            } else {
+                progressBar.setVisibility(View.VISIBLE);
+                heartRateinfo.setVisibility(View.GONE);
+                scanForDevice();
+            }
         }
     };
     // fin
@@ -753,6 +760,64 @@ public class SportPlayer extends AppCompatActivity {
         }
 
     }
+
+    @SuppressLint("SetTextI18n")
+    void scanForDevice() {
+
+        progressBar.setVisibility(View.VISIBLE);
+
+        //polar device
+        api = PolarBleApiDefaultImpl.defaultImplementation(this, PolarBleApi.ALL_FEATURES);
+        api.setPolarFilter(false);
+
+        api.setApiLogger(new PolarBleApi.PolarBleApiLogger() {
+            @Override
+            public void message(String s) {
+                Log.d(TAG, s);
+            }
+        });
+        Log.d(TAG, "version: " + PolarBleApiDefaultImpl.versionInfo());
+
+        Log.d(TAG, "Start ScANN SesSiOn");
+
+        if (scanDisposable == null) {
+            scanDisposable = api.searchForDevice().observeOn(AndroidSchedulers.mainThread()).subscribe(
+                    new Consumer<PolarDeviceInfo>() {
+                        @Override
+                        public void accept(PolarDeviceInfo polarDeviceInfo) throws Exception {
+                            Log.d(TAG, "BLE device found id: " + polarDeviceInfo.deviceId + " address: " + polarDeviceInfo.address + " rssi: " + polarDeviceInfo.rssi + " name: " + polarDeviceInfo.name + " isConnectable: " + polarDeviceInfo.isConnectable);
+
+                            String deviceNameMark = String.valueOf(polarDeviceInfo.name).split(" ")[0];
+//                            Log.d(TAG, "Device Mark is: " + deviceNameMark);
+
+                            if (deviceNameMark.equals("Polar")) {
+                                DEVICE_ID = polarDeviceInfo.address;
+
+                                scanDisposable.dispose();
+                                senzorConnected = true;
+                                connectPolarDevice();
+                            }
+                        }
+                    },
+                    new Consumer<Throwable>() {
+                        @Override
+                        public void accept(Throwable throwable) throws Exception {
+                            Log.d(TAG, "scannnnnnn" + throwable.getLocalizedMessage());
+                        }
+                    },
+                    new Action() {
+                        @Override
+                        public void run() throws Exception {
+                            Log.d(TAG, "complete");
+                        }
+                    }
+            );
+        } else {
+            scanDisposable.dispose();
+            scanDisposable = null;
+        }
+    }       // implementacia autoscanu a autoconnectu na senzor
+
 
     void connectPolarDevice() {
         final Handler handler = new Handler();
@@ -789,9 +854,11 @@ public class SportPlayer extends AppCompatActivity {
                 DEVICE_ID = polarDeviceInfo.deviceId;
             }
 
+            @SuppressLint("SetTextI18n")
             @Override
             public void deviceDisconnected(PolarDeviceInfo polarDeviceInfo) {
                 Log.d(TAG, "DISCONNECTED: " + polarDeviceInfo.deviceId);
+                senzorConnected = false;
             }
 
             @Override
@@ -839,19 +906,23 @@ public class SportPlayer extends AppCompatActivity {
                 new Consumer<PolarHrBroadcastData>() {
                     @Override
                     public void accept(PolarHrBroadcastData polarBroadcastData) throws Exception {
+                        if(senzorConnected) {
+                            progressBar.setVisibility(View.GONE);
+                            heartRateinfo.setVisibility(View.VISIBLE);
+                            player_song_title.setVisibility(View.VISIBLE);
 
-                        player_song_title.setVisibility(View.VISIBLE);
+                            senzorData = polarBroadcastData.hr;
 
-                        senzorData = polarBroadcastData.hr;
+                            updateLevelIndicator(senzorData);
+                            heartRateinfo.setText(String.valueOf(senzorData));
 
-                        updateLevelIndicator(senzorData);
-                        heartRateinfo.setText(String.valueOf(senzorData));
+                            hrValues.add(senzorData);
+                            changeSongPosition();
 
-                        hrValues.add(senzorData);
-                        changeSongPosition();
+                            if (!runnableFlag[0]) startCountingHR(polarBroadcastData.hr);
+                            runnableFlag[0] = true; // when we started average counting, we can disable start of runnable counter
+                        } else stopCountingHR();
 
-                        if (!runnableFlag[0]) startCountingHR(polarBroadcastData.hr);
-                        runnableFlag[0] = true; // when we started average counting, we can disable start of runnable counter
 
 //                        Log.d(TAG, "HR SenZOR OH1 BROADCAST " +
 //                                polarBroadcastData.polarDeviceInfo.deviceId + " HR: " +
@@ -868,7 +939,7 @@ public class SportPlayer extends AppCompatActivity {
                 new Action() {
                     @Override
                     public void run() throws Exception {
-                        Log.d(TAG, "complete");
+                        Log.d(TAG, "complete SenzorOFF");
                     }
                 }
         );

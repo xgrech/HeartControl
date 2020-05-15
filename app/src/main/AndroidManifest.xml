@@ -11,9 +11,9 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
-        <activity android:name=".HeartRateTest"></activity>
+        <activity android:name=".HeartRateTest" />
         <activity android:name=".CarPlayer" />
-        <activity android:name=".SleepPlayer"></activity>
+        <activity android:name=".SleepPlayer" />
         <activity android:name=".SportPlayer" />
         <activity android:name=".SetNewUser" />
         <activity android:name=".Menu" />
@@ -21,7 +21,10 @@
             android:name=".UserProfile"
             android:label="@string/title_activity_user_profile"
             android:theme="@style/AppTheme.NoActionBar" />
-        <activity android:name=".Launcher">
+        <activity
+            android:name=".Launcher"
+            android:noHistory="true"
+            >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -38,13 +41,11 @@
         <activity android:name=".IntroSlider">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
         <activity
             android:name=".MusicPlayer"
-            android:launchMode="singleTop"
             android:screenOrientation="fullSensor" />
         <activity android:name=".PolarConnection" />
         <activity

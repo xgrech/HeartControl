@@ -10,14 +10,11 @@
         android:id="@+id/profileTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="67dp"
+        android:layout_marginStart="32dp"
         android:layout_marginTop="16dp"
-        android:layout_marginEnd="285dp"
-        android:text="Profile Settings"
+        android:text="Nastavenia Profilu"
         android:textColor="#480453"
         android:textSize="30sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.349"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -28,7 +25,7 @@
         android:layout_marginStart="160dp"
         android:layout_marginTop="28dp"
         android:ems="10"
-        android:hint="Name"
+        android:hint="Meno"
         android:inputType="textPersonName"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/profileTitle" />
@@ -40,7 +37,7 @@
         android:layout_marginStart="160dp"
         android:layout_marginTop="12dp"
         android:ems="10"
-        android:hint="Age"
+        android:hint="Vek"
         android:inputType="numberDecimal"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/profileName" />
@@ -49,7 +46,7 @@
         android:id="@+id/profileGender"
         android:layout_width="232dp"
         android:layout_height="43dp"
-        android:layout_marginStart="152dp"
+        android:layout_marginStart="158dp"
         android:layout_marginTop="128dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/profileAge" />
@@ -58,7 +55,7 @@
         android:id="@+id/profileSmoker"
         android:layout_width="232dp"
         android:layout_height="43dp"
-        android:layout_marginStart="152dp"
+        android:layout_marginStart="158dp"
         android:layout_marginTop="16dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/profileSportActivity" />
@@ -68,8 +65,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="24dp"
-        android:layout_marginTop="40dp"
-        android:text="Work Activity:"
+        android:layout_marginTop="39dp"
+        android:text="Aktivita pri práci:"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView4" />
 
@@ -77,7 +74,7 @@
         android:id="@+id/profilePatology"
         android:layout_width="232dp"
         android:layout_height="43dp"
-        android:layout_marginStart="152dp"
+        android:layout_marginStart="158dp"
         android:layout_marginTop="16dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/profileWorkActivity" />
@@ -88,7 +85,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="24dp"
         android:layout_marginTop="40dp"
-        android:text="Sport Activity:"
+        android:text="Športová aktivita:"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView" />
 
@@ -96,7 +93,7 @@
         android:id="@+id/profileWorkActivity"
         android:layout_width="232dp"
         android:layout_height="43dp"
-        android:layout_marginStart="152dp"
+        android:layout_marginStart="158dp"
         android:layout_marginTop="16dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/profileSmoker" />
@@ -106,8 +103,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="24dp"
-        android:layout_marginTop="40dp"
-        android:text="Smoking Habits:"
+        android:layout_marginTop="39dp"
+        android:text="Fajčiarske návyky:"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView3" />
 
@@ -116,8 +113,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="24dp"
-        android:layout_marginTop="40dp"
-        android:text="Related Diseases:"
+        android:layout_marginTop="38dp"
+        android:text="Súvisiace ochorenia:"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView5" />
 
@@ -127,7 +124,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="24dp"
         android:layout_marginTop="156dp"
-        android:text="Gender"
+        android:text="Pohlavie:"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView9" />
 
@@ -135,7 +132,7 @@
         android:id="@+id/profileSportActivity"
         android:layout_width="232dp"
         android:layout_height="43dp"
-        android:layout_marginStart="152dp"
+        android:layout_marginStart="158dp"
         android:layout_marginTop="16dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/profileGender" />
@@ -146,7 +143,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="24dp"
         android:layout_marginTop="100dp"
-        android:text="Your Name"
+        android:text="Tvoje meno"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -156,57 +153,21 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="24dp"
         android:layout_marginTop="32dp"
-        android:text="Your Age"
+        android:text="Tvoj vek"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView7" />
 
     <TextView
         android:id="@+id/textView10"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="207dp"
+        android:layout_height="45dp"
         android:layout_marginStart="24dp"
-        android:layout_marginTop="64dp"
-        android:text="Avarage HeartRate (counted):"
+        android:layout_marginTop="48dp"
+        android:text="Priemerný telesný tep:  \n(vypočítané)"
         android:textAllCaps="false"
         android:textSize="16sp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView9" />
-
-    <ImageView
-        android:id="@+id/profile_average_hr_heart_icon"
-        android:layout_width="72dp"
-        android:layout_height="65dp"
-        android:layout_marginTop="208dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.811"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/yellow_heart" />
-
-    <TextView
-        android:id="@+id/textView11"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="281dp"
-        android:layout_marginEnd="71dp"
-        android:text="Run Test"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="1.0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/user_profile_average" />
-
-    <TextView
-        android:id="@+id/profile_average_hr_text"
-        android:layout_width="28dp"
-        android:layout_height="18dp"
-        android:layout_marginStart="60dp"
-        android:layout_marginTop="44dp"
-        android:text="0"
-        android:textAlignment="center"
-        android:textColor="#100B0B"
-        android:textStyle="bold"
-        app:layout_constraintStart_toEndOf="@+id/textView10"
-        app:layout_constraintTop_toBottomOf="@+id/profileAge" />
 
     <Button
         android:id="@+id/profile_save_data"
@@ -216,10 +177,53 @@
         android:layout_marginStart="278dp"
         android:layout_marginTop="52dp"
         android:layout_marginEnd="24dp"
-        android:text="Save"
+        android:text="Uložiť"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.333"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/profilePatology" />
+        app:layout_constraintTop_toBottomOf="@+id/profilePatology"
+        tools:visibility="gone" />
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="101dp"
+        android:layout_height="93dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="20dp"
+        app:layout_constraintStart_toEndOf="@+id/textView10"
+        app:layout_constraintTop_toBottomOf="@+id/profileAge">
+
+        <ImageView
+            android:id="@+id/profile_average_hr_heart_icon"
+            android:layout_width="72dp"
+            android:layout_height="65dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.482"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@drawable/yellow_heart" />
+
+        <TextView
+            android:id="@+id/profile_average_hr_text"
+            android:layout_width="28dp"
+            android:layout_height="18dp"
+            android:layout_marginTop="22dp"
+            android:text="80"
+            android:textAlignment="center"
+            android:textColor="#100B0B"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/textView12"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Spustiť test"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/profile_average_hr_heart_icon" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -4,6 +4,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Action;
 import io.reactivex.functions.Consumer;
@@ -67,10 +68,12 @@ public class CarPlayer extends AppCompatActivity {
     private static final int RESULT_CANCELED = 357;
     private static final int REQUEST_ENABLE_GPS = 3358;
 
-    String DEVICE_ID = "612F262A"; // or bt address like F5:A7:B8:EF:7A:D1 // TODO replace with your device id
+    String DEVICE_ID = ""; // Test OH1 612F262A
 
     PolarBleApi api;
     Disposable broadcastDisposable;
+    Disposable scanDisposable;
+
 
     Boolean isBluetoothOn = false;
     Boolean isGPSOn = false;
@@ -80,7 +83,7 @@ public class CarPlayer extends AppCompatActivity {
 
     private ProgressBar progressBar;
 
-    int averageHeartRate; // todo doriesit analyzator priemerneho tepu
+    int averageHeartRate;
 
     int heartRate;
     int senzorData = 0;
@@ -133,6 +136,8 @@ public class CarPlayer extends AppCompatActivity {
 
     private User currentUser;
 
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -158,8 +163,6 @@ public class CarPlayer extends AppCompatActivity {
         heartRateinfo = (TextView) findViewById(R.id.car_palyer_heart_rate);
 
 
-        // inicializuj pripojenie OH1 senzoru
-        connectPolarDevice();
 
 
         songList = new ArrayList<Song>();
@@ -168,6 +171,7 @@ public class CarPlayer extends AppCompatActivity {
         getCurrentUser();
 
         initializeUI();
+        scanForDevice();
         initializeSeekbar();
         initializePlaybackController();
         Log.d(TAG, "onCreate: finished");
@@ -804,12 +808,15 @@ public class CarPlayer extends AppCompatActivity {
                 hrCount += hrValues.get(i);
             }
 
-            heartRate = hrCount / hrValues.size();
+            if(hrValues.size() != 0) heartRate = hrCount / hrValues.size();
+            else {
+                heartRate = 0;
+            }
 
             heartRateinfo.startAnimation(animFadein);
             heartRateinfo.setText(String.valueOf(heartRate));
 
-            Log.e("DEBUGGg", String.valueOf(songPosition));
+//            Log.e("DEBUGGg", String.valueOf(songPosition));
 
             if (searchSongByEmotion() != -1) {
                 if (!playEnabled) {
@@ -856,6 +863,68 @@ public class CarPlayer extends AppCompatActivity {
     }
 
 
+    @SuppressLint("SetTextI18n")
+    void scanForDevice() {
+        car_player_song_title.setText("Senzor pulzu nie je pripojený. Hľadám...");
+//        scanProgressBar.setVisibility(View.VISIBLE);
+
+        //polar device
+        api = PolarBleApiDefaultImpl.defaultImplementation(this, PolarBleApi.ALL_FEATURES);
+        api.setPolarFilter(false);
+
+        api.setApiLogger(new PolarBleApi.PolarBleApiLogger() {
+            @Override
+            public void message(String s) {
+                Log.d(TAG, s);
+            }
+        });
+        Log.d(TAG, "version: " + PolarBleApiDefaultImpl.versionInfo());
+
+        Log.d(TAG, "Start ScANN SesSiOn");
+
+        if (scanDisposable == null) {
+            scanDisposable = api.searchForDevice().observeOn(AndroidSchedulers.mainThread()).subscribe(
+                    new Consumer<PolarDeviceInfo>() {
+                        @Override
+                        public void accept(PolarDeviceInfo polarDeviceInfo) throws Exception {
+                            Log.d(TAG, "BLE device found id: " + polarDeviceInfo.deviceId + " address: " + polarDeviceInfo.address + " rssi: " + polarDeviceInfo.rssi + " name: " + polarDeviceInfo.name + " isConnectable: " + polarDeviceInfo.isConnectable);
+
+                            String deviceNameMark = String.valueOf(polarDeviceInfo.name).split(" ")[0];
+//                            Log.d(TAG, "Device Mark is: " + deviceNameMark);
+
+                            if (deviceNameMark.equals("Polar")) {
+                                DEVICE_ID = polarDeviceInfo.address;
+
+                                scanDisposable.dispose();
+
+//                                scanProgressBar.setVisibility(View.GONE);
+//                                scanText.setText("Nájdené zariadenie " + polarDeviceInfo.name);
+//                                scanText.setTextColor(getApplicationContext().getResources().getColor(R.color.green));
+
+
+                                connectPolarDevice();
+                            }
+                        }
+                    },
+                    new Consumer<Throwable>() {
+                        @Override
+                        public void accept(Throwable throwable) throws Exception {
+                            Log.d(TAG, "scannnnnnn" + throwable.getLocalizedMessage());
+                        }
+                    },
+                    new Action() {
+                        @Override
+                        public void run() throws Exception {
+                            Log.d(TAG, "complete");
+                        }
+                    }
+            );
+        } else {
+            scanDisposable.dispose();
+            scanDisposable = null;
+        }
+    }       // implementacia autoscanu a autoconnectu na senzor
+
     void connectPolarDevice() {
         final Handler handler = new Handler();
         final boolean[] runnableFlag = {false};
@@ -891,9 +960,11 @@ public class CarPlayer extends AppCompatActivity {
                 DEVICE_ID = polarDeviceInfo.deviceId;
             }
 
+            @SuppressLint("SetTextI18n")
             @Override
             public void deviceDisconnected(PolarDeviceInfo polarDeviceInfo) {
                 Log.d(TAG, "DISCONNECTED: " + polarDeviceInfo.deviceId);
+                scanForDevice();
             }
 
             @Override
@@ -955,6 +1026,7 @@ public class CarPlayer extends AppCompatActivity {
 //                                polarBroadcastData.polarDeviceInfo.deviceId + " HR: " +
 //                                polarBroadcastData.hr + " batt: " +
 //                                polarBroadcastData.batteryStatus);
+
                     }
                 },
                 new Consumer<Throwable>() {
@@ -966,11 +1038,9 @@ public class CarPlayer extends AppCompatActivity {
                 new Action() {
                     @Override
                     public void run() throws Exception {
-                        Log.d(TAG, "complete");
+                        Log.d(TAG, "complete SenzorOFF");
                     }
                 }
         );
     }
-
-
-}
+    }

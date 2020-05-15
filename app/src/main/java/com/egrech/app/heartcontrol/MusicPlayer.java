@@ -1,6 +1,7 @@
 package com.egrech.app.heartcontrol;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.pm.PackageManager;
@@ -17,15 +18,20 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.TimerTask;
+import java.util.UUID;
 
 import android.net.Uri;
 import android.content.ContentResolver;
 import android.database.Cursor;
 import android.os.Environment;
+import android.os.Handler;
 import android.provider.MediaStore;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.widget.AdapterView;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.os.IBinder;
@@ -37,14 +43,30 @@ import android.view.View;
 
 
 import android.widget.MediaController.MediaPlayerControl;
+import android.widget.ProgressBar;
 import android.widget.Spinner;
+import android.widget.Switch;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Action;
+import io.reactivex.functions.Consumer;
+import polar.com.sdk.api.PolarBleApi;
+import polar.com.sdk.api.PolarBleApiCallback;
+import polar.com.sdk.api.PolarBleApiDefaultImpl;
+import polar.com.sdk.api.errors.PolarInvalidArgument;
+import polar.com.sdk.api.model.PolarDeviceInfo;
+import polar.com.sdk.api.model.PolarHrBroadcastData;
+import polar.com.sdk.api.model.PolarHrData;
 
 public class MusicPlayer extends AppCompatActivity implements MediaPlayerControl {
+    public static final String TAG = "MusicPlayerActivity";
+
+
     private ArrayList<Song> songList;
     private ListView songView;
 
@@ -52,7 +74,7 @@ public class MusicPlayer extends AppCompatActivity implements MediaPlayerControl
     private Intent playIntent;
     private boolean musicBound = false;
 
-    private Button shuffle_play;
+    private Switch shuffle_play;
     private Button end_all;
 
     private MusicController controller;
@@ -60,6 +82,13 @@ public class MusicPlayer extends AppCompatActivity implements MediaPlayerControl
     TextView currentSongTitle;
     TextView currentSongArtist;
     TextView pickSongInfo; // simple text to pick a song in music player
+
+    TextView heartRateInfo;
+
+
+    ProgressBar scanSpin;
+
+    String actualPlayingSong;
 
     View lastSongView;
     int lastPickedPosition = 0;
@@ -69,10 +98,23 @@ public class MusicPlayer extends AppCompatActivity implements MediaPlayerControl
 
     private boolean paused = false, playbackPaused = false;
 
+    MusicService.MusicBinder binder;
+
+    int heartRate;
+    PolarBleApi api;
+    Disposable broadcastDisposable;
+    Disposable scanDisposable;
+
+        String DEVICE_ID = "";
+//    String DEVICE_ID = "612F262A";
+    int senzorData = -1;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_music_player);
+
 
         // check for permission
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
@@ -83,26 +125,19 @@ public class MusicPlayer extends AppCompatActivity implements MediaPlayerControl
                     12);
         }
 
+
+        scanSpin = (ProgressBar) findViewById(R.id.music_player_progressBar);
+        scanSpin.setVisibility(View.VISIBLE);
+        heartRateInfo = (TextView) findViewById(R.id.music_player_heart_rate_info);
+
         pickSongInfo = (TextView) findViewById(R.id.pick_song_info_text);
 
-        shuffle_play = (Button) findViewById(R.id.shuffle_button);
-        shuffle_play.setOnClickListener(new View.OnClickListener() {
+        shuffle_play = (Switch) findViewById(R.id.shuffle_button);
+
+        shuffle_play.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
-            public void onClick(View v) {
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 musicSrv.setShuffle();
-            }
-        });
-
-        end_all = (Button) findViewById(R.id.end_button);
-        end_all.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                stopService(new Intent(getApplicationContext(), MusicService.class));
-                musicSrv = null;
-                System.exit(0);
-
-                Intent intent = new Intent(getApplicationContext(), Menu.class);
-                startActivity(intent);
             }
         });
 
@@ -121,17 +156,13 @@ public class MusicPlayer extends AppCompatActivity implements MediaPlayerControl
         songView.setAdapter(songAdt);
 
         currentSongTitle = (TextView) findViewById(R.id.current_song_title);
-        currentSongArtist = (TextView) findViewById(R.id.current_song_artist) ;
+        currentSongArtist = (TextView) findViewById(R.id.current_song_artist);
 
         setController();
+        scanForDevice();
+//        connectPolarDevice();
     }
 
-    @Override
-    public void onBackPressed() {
-        System.exit(0);
-        Intent intent = new Intent(getApplicationContext(), Menu.class);
-        startActivity(intent);
-    }
 
     private void readFromFile(Context context) {
         Log.d("FILEDATA", "Reeading Data from file");
@@ -139,20 +170,19 @@ public class MusicPlayer extends AppCompatActivity implements MediaPlayerControl
         try {
             InputStream inputStream = context.openFileInput("SongEmotions");
 
-            if ( inputStream != null ) {
+            if (inputStream != null) {
                 InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
                 BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
 
                 String line = bufferedReader.readLine();
-                while(line != null){
+                while (line != null) {
                     Log.d("FILEDATA", line);
                     line = bufferedReader.readLine();
                 }
 
                 inputStream.close();
             }
-        }
-        catch (FileNotFoundException e) {
+        } catch (FileNotFoundException e) {
             Log.e("login activity", "File not found: " + e.toString());
         } catch (IOException e) {
             Log.e("login activity", "Can not read file: " + e.toString());
@@ -162,7 +192,7 @@ public class MusicPlayer extends AppCompatActivity implements MediaPlayerControl
     public int getSongPosition() {
         int i = 0;
         for (i = 0; i < songList.size(); i++) {
-            if(musicSrv.getCurrentSong().getTitle().equals(songList.get(i).getTitle())) return i;
+            if (musicSrv.getCurrentSong().getTitle().equals(songList.get(i).getTitle())) return i;
         }
         return i;
     }
@@ -178,9 +208,9 @@ public class MusicPlayer extends AppCompatActivity implements MediaPlayerControl
         currentSongTitle.setText(musicSrv.getCurrentSong().getTitle());
         currentSongArtist.setText(musicSrv.getCurrentSong().getArtist());
 
+        actualPlayingSong = musicSrv.getCurrentSong().getTitle();
 
-
-        View actualSongView = getViewByPosition(getSongPosition(),songView);
+        View actualSongView = getViewByPosition(getSongPosition(), songView);
         actualSongView.setBackgroundColor(getApplicationContext().getResources().getColor(R.color.gray_transparent));
 
         if (lastSongView != null) {
@@ -206,8 +236,10 @@ public class MusicPlayer extends AppCompatActivity implements MediaPlayerControl
         currentSongTitle.setText(musicSrv.getCurrentSong().getTitle());
         currentSongArtist.setText(musicSrv.getCurrentSong().getArtist());
 
+        actualPlayingSong = musicSrv.getCurrentSong().getTitle();
 
-        View actualSongView = getViewByPosition(getSongPosition(),songView);
+
+        View actualSongView = getViewByPosition(getSongPosition(), songView);
         actualSongView.setBackgroundColor(getApplicationContext().getResources().getColor(R.color.gray_transparent));
 
         if (lastSongView != null) {
@@ -216,17 +248,17 @@ public class MusicPlayer extends AppCompatActivity implements MediaPlayerControl
         lastSongView = actualSongView;
 
 
-//        if (getSongPosition() < topSongViewPosition) {
-//            topSongViewPosition -= 1;
-//            songView.smoothScrollToPosition(topSongViewPosition);
-//        }
+        if (getSongPosition() < topSongViewPosition) {
+            topSongViewPosition -= 1;
+            songView.smoothScrollToPosition(topSongViewPosition);
+        }
     }
 
     public View getViewByPosition(int pos, ListView listView) {
         final int firstListItemPosition = listView.getFirstVisiblePosition();
         final int lastListItemPosition = firstListItemPosition + listView.getChildCount() - 1;
 
-        if (pos < firstListItemPosition || pos > lastListItemPosition ) {
+        if (pos < firstListItemPosition || pos > lastListItemPosition) {
             return listView.getAdapter().getView(pos, null, listView);
         } else {
             final int childIndex = pos - firstListItemPosition;
@@ -236,9 +268,12 @@ public class MusicPlayer extends AppCompatActivity implements MediaPlayerControl
 
 
     public void songPicked(View view) {
+        startScanningSongDiff();
+
         musicSrv.setSong(Integer.parseInt(view.getTag().toString()));
         Log.e("PLAYINGSONG", view.getTag().toString());
         musicSrv.playSong();
+
         if (playbackPaused) {
             setController();
             playbackPaused = false;
@@ -253,13 +288,78 @@ public class MusicPlayer extends AppCompatActivity implements MediaPlayerControl
         }
         lastSongView = view;
 
+        actualPlayingSong = musicSrv.getCurrentSong().getTitle();
+
         currentSongTitle.setText(musicSrv.getCurrentSong().getTitle());
         currentSongArtist.setText(musicSrv.getCurrentSong().getArtist());
     }
 
-    private void setController() {
-        controller = new MusicController(this);
 
+    public static Handler myHandler = new Handler();
+    private static final int TIME_TO_WAIT = 1000;
+
+    Runnable myRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (musicSrv.getCurrentSong().getTitle().equals(actualPlayingSong)) {
+                restartScanningSongDiff();
+            } else {
+                View actualSongView = getViewByPosition(getSongPosition(), songView);
+                actualSongView.setBackgroundColor(getApplicationContext().getResources().getColor(R.color.gray_transparent));
+                if (lastSongView != null) {
+                    lastSongView.setBackgroundColor(getApplicationContext().getResources().getColor(R.color.default_background));
+                }
+                currentSongTitle.setText(musicSrv.getCurrentSong().getTitle());
+                currentSongArtist.setText(musicSrv.getCurrentSong().getArtist());
+
+                lastSongView = actualSongView;
+                actualPlayingSong = musicSrv.getCurrentSong().getTitle();
+                restartScanningSongDiff();
+            }
+        }
+    };
+    // fin
+
+    public void startScanningSongDiff() {
+        myHandler.postDelayed(myRunnable, TIME_TO_WAIT);
+    }
+
+    public void stopScanningSongDiff() {
+        myHandler.removeCallbacks(myRunnable);
+    }
+
+    public void restartScanningSongDiff() {
+        myHandler.removeCallbacks(myRunnable);
+        myHandler.postDelayed(myRunnable, TIME_TO_WAIT);
+    }
+
+
+    private void setController() {
+        controller = new MusicController(this) {
+            @Override
+            public void hide() {
+//                super.hide();
+            }
+
+            @Override
+            public boolean dispatchKeyEvent(KeyEvent event) {
+                if (event.getKeyCode() == KeyEvent.KEYCODE_BACK) {
+                    super.hide();//Hide mediaController
+
+                    stopScanningSongDiff();
+                    stopService(new Intent(getApplicationContext(), MusicService.class));
+                    stopService(playIntent);
+                    musicSrv = null;
+                    finish();
+                    return true;//If press Back button, finish here
+                }
+                //If not Back button, other button (volume) work as usual.
+
+                return super.dispatchKeyEvent(event);
+
+            }
+
+        };
         controller.setPrevNextListeners(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -291,7 +391,7 @@ public class MusicPlayer extends AppCompatActivity implements MediaPlayerControl
     private ServiceConnection musicConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            MusicService.MusicBinder binder = (MusicService.MusicBinder) service;
+            binder = (MusicService.MusicBinder) service;
             //get service
             musicSrv = binder.getService();
             //pass list
@@ -424,6 +524,186 @@ public class MusicPlayer extends AppCompatActivity implements MediaPlayerControl
         }
     }
 
+    @SuppressLint("SetTextI18n")
+    void scanForDevice() {
+
+        scanSpin.setVisibility(View.VISIBLE);
+
+        //polar device
+        api = PolarBleApiDefaultImpl.defaultImplementation(this, PolarBleApi.ALL_FEATURES);
+        api.setPolarFilter(false);
+
+        api.setApiLogger(new PolarBleApi.PolarBleApiLogger() {
+            @Override
+            public void message(String s) {
+                Log.d(TAG, s);
+            }
+        });
+        Log.d(TAG, "version: " + PolarBleApiDefaultImpl.versionInfo());
+
+        Log.d(TAG, "Start ScANN SesSiOn");
+
+        if (scanDisposable == null) {
+            scanDisposable = api.searchForDevice().observeOn(AndroidSchedulers.mainThread()).subscribe(
+                    new Consumer<PolarDeviceInfo>() {
+                        @Override
+                        public void accept(PolarDeviceInfo polarDeviceInfo) throws Exception {
+                            Log.d(TAG, "BLE device found id: " + polarDeviceInfo.deviceId + " address: " + polarDeviceInfo.address + " rssi: " + polarDeviceInfo.rssi + " name: " + polarDeviceInfo.name + " isConnectable: " + polarDeviceInfo.isConnectable);
+
+                            String deviceNameMark = String.valueOf(polarDeviceInfo.name).split(" ")[0];
+//                            Log.d(TAG, "Device Mark is: " + deviceNameMark);
+
+                            if (deviceNameMark.equals("Polar")) {
+                                DEVICE_ID = polarDeviceInfo.address;
+
+                                scanDisposable.dispose();
+                                connectPolarDevice();
+                            }
+                        }
+                    },
+                    new Consumer<Throwable>() {
+                        @Override
+                        public void accept(Throwable throwable) throws Exception {
+                            Log.d(TAG, "scannnnnnn" + throwable.getLocalizedMessage());
+                        }
+                    },
+                    new Action() {
+                        @Override
+                        public void run() throws Exception {
+                            Log.d(TAG, "complete");
+                        }
+                    }
+            );
+        } else {
+            scanDisposable.dispose();
+            scanDisposable = null;
+        }
+    }       // implementacia autoscanu a autoconnectu na senzor
+
+    private void provideDisconnectAction() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                heartRateInfo.setVisibility(View.GONE);
+                scanSpin.setVisibility(View.VISIBLE);
+                scanForDevice();
+            }
+        });
+    }
+
+    void connectPolarDevice() {
+        //polar device
+        api = PolarBleApiDefaultImpl.defaultImplementation(this, PolarBleApi.ALL_FEATURES);
+        api.setPolarFilter(false);
+
+        api.setApiLogger(new PolarBleApi.PolarBleApiLogger() {
+            @Override
+            public void message(String s) {
+                Log.d(TAG, s);
+            }
+        });
+        Log.d(TAG, "version: " + PolarBleApiDefaultImpl.versionInfo());
+
+
+        api.setApiCallback(new PolarBleApiCallback() {
+            @Override
+            public void blePowerStateChanged(boolean powered) {
+                Log.d(TAG, "BLE power: " + powered);
+            }
+
+            @Override
+            public void deviceConnected(PolarDeviceInfo polarDeviceInfo) {
+                Log.d(TAG, "CONNECTED: " + polarDeviceInfo.deviceId);
+                DEVICE_ID = polarDeviceInfo.deviceId;
+            }
+
+            @Override
+            public void deviceConnecting(PolarDeviceInfo polarDeviceInfo) {
+                Log.d(TAG, "CONNECTING: " + polarDeviceInfo.deviceId);
+                DEVICE_ID = polarDeviceInfo.deviceId;
+            }
+
+            @SuppressLint("SetTextI18n")
+            @Override
+            public void deviceDisconnected(PolarDeviceInfo polarDeviceInfo) {
+                Log.d(TAG, "DISCONNECTED: " + polarDeviceInfo.deviceId);
+                provideDisconnectAction();
+            }
+
+            @Override
+            public void accelerometerFeatureReady(String identifier) {
+                Log.d(TAG, "ACC READY: " + identifier);
+                // acc streaming can be started now if needed
+            }
+
+
+            @Override
+            public void hrFeatureReady(String identifier) {
+                Log.d(TAG, "HR READY: " + identifier);
+                // hr notifications are about to start
+            }
+
+            @Override
+            public void disInformationReceived(String identifier, UUID uuid, String value) {
+                Log.d(TAG, "uuid: " + uuid + " value: " + value);
+
+            }
+
+            @Override
+            public void batteryLevelReceived(String identifier, int level) {
+                Log.d(TAG, "BATTERY LEVEL: " + level);
+
+            }
+
+            @Override
+            public void hrNotificationReceived(String identifier, PolarHrData data) {
+                Log.d(TAG, "HR value: " + data.hr + " rrsMs: " + data.rrsMs + " rr: " + data.rrs + " contact: " + data.contactStatus + "," + data.contactStatusSupported);
+            }
+
+            @Override
+            public void polarFtpFeatureReady(String s) {
+                Log.d(TAG, "FTP ready");
+            }
+        });
+
+        try {
+            api.connectToDevice(DEVICE_ID);
+        } catch (PolarInvalidArgument polarInvalidArgument) {
+            polarInvalidArgument.printStackTrace();
+        }
+        broadcastDisposable = api.startListenForPolarHrBroadcasts(null).subscribe(
+                new Consumer<PolarHrBroadcastData>() {
+                    @Override
+                    public void accept(PolarHrBroadcastData polarBroadcastData) throws Exception {
+
+                        scanSpin.setVisibility(View.GONE);
+                        heartRateInfo.setVisibility(View.VISIBLE);
+                        heartRate = polarBroadcastData.hr;
+                        heartRateInfo.setText(String.valueOf(polarBroadcastData.hr));
+
+
+//                        Log.d(TAG,"HR SenZOR OH1 BROADCAST " +
+//                                polarBroadcastData.polarDeviceInfo.deviceId + " HR: " +
+//                                polarBroadcastData.hr + " batt: " +
+//                                polarBroadcastData.batteryStatus);
+                    }
+                },
+                new Consumer<Throwable>() {
+                    @Override
+                    public void accept(Throwable throwable) throws Exception {
+                        Log.e(TAG, "" + throwable.getLocalizedMessage());
+                    }
+                },
+                new Action() {
+                    @Override
+                    public void run() throws Exception {
+                        Log.d(TAG, "complete SenzorOFF");
+                    }
+                }
+        );
+    }
+
+
     public void playWithAlbum(Cursor musicCursor) {
 
         ContentResolver musicResolver = getContentResolver();
@@ -532,6 +812,7 @@ public class MusicPlayer extends AppCompatActivity implements MediaPlayerControl
             return musicSrv.getDur();
         else return 0;
     }
+
 
     @Override
     public int getCurrentPosition() {

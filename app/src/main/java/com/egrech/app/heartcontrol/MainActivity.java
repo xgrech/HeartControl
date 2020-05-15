@@ -58,10 +58,10 @@ public class MainActivity extends AppCompatActivity {
         height = displaymetrics.heightPixels;
         width = displaymetrics.widthPixels;
 
-        music_shade = (ImageView) findViewById(R.id.music_shade);
-        heartrate_shade = (ImageView) findViewById(R.id.heart_shade);
-        stats_shade = (ImageView) findViewById(R.id.stat_shade);
-        settings_shade = (ImageView) findViewById(R.id.settings_shade);
+//        music_shade = (ImageView) findViewById(R.id.music_shade);
+//        heartrate_shade = (ImageView) findViewById(R.id.heart_shade);
+//        stats_shade = (ImageView) findViewById(R.id.stat_shade);
+//        settings_shade = (ImageView) findViewById(R.id.settings_shade);
 
         heart_default_icon = (ImageView) findViewById(R.id.default_heart_icon);
         heart_rain = (ImageView) findViewById(R.id.rain_heart_icon);

@@ -126,10 +126,13 @@ public class MusicService extends Service implements
 
     @Override
     public void onCompletion(MediaPlayer mp) {
-        if (player.getCurrentPosition() == 0) {
-            mp.reset();
-            playNext();
-        }
+        mp.reset();
+
+        playNext();
+//        if (player.getCurrentPosition() == 0) {
+//            mp.reset();
+//            playNext();
+//        }
     }
 
     @Override
@@ -143,7 +146,7 @@ public class MusicService extends Service implements
         //start playback
         mp.start();
 
-        Intent notIntent = new Intent(this, MainActivity.class);
+        Intent notIntent = new Intent(this, MusicPlayer.class);
         notIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pendInt = PendingIntent.getActivity(this, 0,
                 notIntent, PendingIntent.FLAG_UPDATE_CURRENT);
@@ -163,7 +166,7 @@ public class MusicService extends Service implements
         NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID);
         Notification notification = notificationBuilder.setOngoing(true)
                 .setSmallIcon(R.drawable.default_icon)
-                .setContentTitle("Playing" + songs.get(songPosn).getTitle())
+                .setContentTitle("Prehrávam skladbu - " + songs.get(songPosn).getTitle())
                 .setPriority(NotificationManager.IMPORTANCE_MIN)
                 .setCategory(Notification.CATEGORY_SERVICE)
                 .build();
@@ -202,7 +205,7 @@ public class MusicService extends Service implements
 
     public void playPrev() {
         songPosn--;
-        if (songPosn != 0) songPosn = songs.size() - 1;
+        if (songPosn == -1) songPosn = songs.size() - 1;
         playSong();
     }
 

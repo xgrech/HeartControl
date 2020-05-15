@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Action;
 import io.reactivex.functions.Consumer;
@@ -31,6 +32,7 @@ import android.os.Handler;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.ImageView;
@@ -64,10 +66,12 @@ public class SleepPlayer extends AppCompatActivity {
     private static final int RESULT_CANCELED = 357;
     private static final int REQUEST_ENABLE_GPS = 3358;
 
-    String DEVICE_ID = "612F262A"; // or bt address like F5:A7:B8:EF:7A:D1 // TODO replace with your device id
+    String DEVICE_ID = ""; // OH1 Testing device 612F262A // TODO replace with your device id
 
     PolarBleApi api;
     Disposable broadcastDisposable;
+    Disposable scanDisposable;
+
 
     Boolean isBluetoothOn = false;
     Boolean isGPSOn = false;
@@ -76,8 +80,6 @@ public class SleepPlayer extends AppCompatActivity {
     private ImageView playNextButton;
 
     private ProgressBar progressBar;
-
-    int averageHeartRat = 90; // todo doriesit analyzator priemerneho tepu
 
     int heartRate;
     int senzorData = -1;
@@ -132,6 +134,8 @@ public class SleepPlayer extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sleep_player);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
         checkForPermission();
         //enable bluetooth
         BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -522,6 +526,7 @@ public class SleepPlayer extends AppCompatActivity {
 
             @Override
             public void onFinish() {
+                finish();
                 writeTimeStamp();
             }
         }.start();
@@ -698,12 +703,10 @@ public class SleepPlayer extends AppCompatActivity {
         if (currentUser.sleepAverageValues != null) {
             values = currentUser.sleepAverageValues.split(" ");
             for (String value : values) {
-                intValues.add(Integer.parseInt(value));
+                if(!value.equals("")) hrCount += Integer.parseInt(value);
             }
-            for (int i = 0; i < intValues.size(); i++) {
-                hrCount += intValues.get(i);
-            }
-            return (hrCount / intValues.size());
+            if(intValues.size() != 0) return (hrCount / intValues.size());
+            else  return -1;
         } else return -1;
     }
 
@@ -712,7 +715,6 @@ public class SleepPlayer extends AppCompatActivity {
 
     public static Handler myHandler = new Handler();
         private static final int TIME_TO_WAIT = 300000; // 5 minute
-//    private static final int TIME_TO_WAIT = 10000; // 5 minute
 
     Runnable myRunnable = new Runnable() {
         @Override
@@ -725,17 +727,18 @@ public class SleepPlayer extends AppCompatActivity {
 
             heartRate = hrCount / hrValues.size();
 
-            int sleepTreshold = 60;
+            int sleepTreshold = 100;
 
             int sleepTemp = getUserAverageSleepTreshold();
             if (sleepTemp != -1) sleepTreshold = sleepTemp;
 
             if (heartRate < sleepTreshold) {
-                if(currentUser.sleepAverageValues != null) {
+                if(currentUser.sleepAverageValues != null && !currentUser.sleepAverageValues.equals("")) {
                     currentUser.sleepAverageValues = currentUser.sleepAverageValues + " " + heartRate;
                 } else currentUser.sleepAverageValues = String.valueOf(heartRate);
                 saveUser(currentUser.getUserId());
                 writeTimeStamp();
+                finish();
             } else {
                 hrValues.clear();
                 restartCountingHR();
@@ -759,6 +762,65 @@ public class SleepPlayer extends AppCompatActivity {
         myHandler.postDelayed(myRunnable, TIME_TO_WAIT);
     }
 
+
+    @SuppressLint("SetTextI18n")
+    void scanForDevice() {
+
+        //polar device
+        api = PolarBleApiDefaultImpl.defaultImplementation(this, PolarBleApi.ALL_FEATURES);
+        api.setPolarFilter(false);
+
+        api.setApiLogger(new PolarBleApi.PolarBleApiLogger() {
+            @Override
+            public void message(String s) {
+                Log.d(TAG, s);
+            }
+        });
+        Log.d(TAG, "version: " + PolarBleApiDefaultImpl.versionInfo());
+
+        Log.d(TAG, "Start ScANN SesSiOn");
+
+        if (scanDisposable == null) {
+            scanDisposable = api.searchForDevice().observeOn(AndroidSchedulers.mainThread()).subscribe(
+                    new Consumer<PolarDeviceInfo>() {
+                        @Override
+                        public void accept(PolarDeviceInfo polarDeviceInfo) throws Exception {
+                            Log.d(TAG, "BLE device found id: " + polarDeviceInfo.deviceId + " address: " + polarDeviceInfo.address + " rssi: " + polarDeviceInfo.rssi + " name: " + polarDeviceInfo.name + " isConnectable: " + polarDeviceInfo.isConnectable);
+
+                            String deviceNameMark = String.valueOf(polarDeviceInfo.name).split(" ")[0];
+//                            Log.d(TAG, "Device Mark is: " + deviceNameMark);
+
+                            if (deviceNameMark.equals("Polar")) {
+                                DEVICE_ID = polarDeviceInfo.address;
+
+                                scanDisposable.dispose();
+
+//                                scanProgressBar.setVisibility(View.GONE);
+//                                scanText.setText("Nájdené zariadenie " + polarDeviceInfo.name);
+//                                scanText.setTextColor(getApplicationContext().getResources().getColor(R.color.green));
+
+                                connectPolarDevice();
+                            }
+                        }
+                    },
+                    new Consumer<Throwable>() {
+                        @Override
+                        public void accept(Throwable throwable) throws Exception {
+                            Log.d(TAG, "scannnnnnn" + throwable.getLocalizedMessage());
+                        }
+                    },
+                    new Action() {
+                        @Override
+                        public void run() throws Exception {
+                            Log.d(TAG, "complete");
+                        }
+                    }
+            );
+        } else {
+            scanDisposable.dispose();
+            scanDisposable = null;
+        }
+    }       // implementacia autoscanu a autoconnectu na senzor
 
     void connectPolarDevice() {
         final Handler handler = new Handler();
@@ -795,9 +857,11 @@ public class SleepPlayer extends AppCompatActivity {
                 DEVICE_ID = polarDeviceInfo.deviceId;
             }
 
+            @SuppressLint("SetTextI18n")
             @Override
             public void deviceDisconnected(PolarDeviceInfo polarDeviceInfo) {
                 Log.d(TAG, "DISCONNECTED: " + polarDeviceInfo.deviceId);
+                scanForDevice();
             }
 
             @Override
@@ -876,7 +940,7 @@ public class SleepPlayer extends AppCompatActivity {
                 new Action() {
                     @Override
                     public void run() throws Exception {
-                        Log.d(TAG, "complete");
+                        Log.d(TAG, "complete SenzorOFF");
                     }
                 }
         );
