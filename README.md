@@ -4,9 +4,9 @@ The aim of this project was to examine possible uses of heart rate for various i
 
 ## Enviroment
 
-Android Studio
-Api level: 23 (Android 6.0 Marshmallow)
-HR Senzor: Polar OH1 (All polar senzors should be compatible)
+- Android Studio
+- Api level: 23 (Android 6.0 Marshmallow)
+- HR Senzor: Polar OH1 (All polar senzors should be compatible)
 
 ### Presentation
 
